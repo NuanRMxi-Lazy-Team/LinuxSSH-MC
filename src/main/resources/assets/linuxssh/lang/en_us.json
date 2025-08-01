@@ -1,0 +1,15 @@
+{
+  "linuxssh.command.connect": "Connecting to %s...",
+  "linuxssh.command.connected": "Connected to %s",
+  "linuxssh.command.disconnect": "Disconnected from SSH session.",
+  "linuxssh.command.not_connected": "You are not connected to any SSH server.",
+  "linuxssh.command.invalid_format": "Invalid connection format. Use: username@host",
+  "linuxssh.command.password_prompt": "Enter your password using: /ssh password <your_password>",
+  "linuxssh.command.fingerprint_prompt": "%s Use /ssh confirm yes to accept or /ssh confirm no to reject",
+  "linuxssh.command.fingerprint_accepted": "Host key accepted. Proceeding with connection...",
+  "linuxssh.command.fingerprint_rejected": "Host key rejected. Connection aborted.",
+  "linuxssh.command.key_imported": "SSH key imported successfully: %s",
+  "linuxssh.command.key_import_error": "Error importing key: %s",
+  "linuxssh.command.command_output": "%s",
+  "linuxssh.command.error": "Error: %s"
+}

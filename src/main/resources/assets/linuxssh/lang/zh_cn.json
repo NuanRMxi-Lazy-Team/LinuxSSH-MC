@@ -1,15 +1,17 @@
 {
+  "modmenu.summaryTranslation.linuxssh": "LinuxSSH 是一个 Minecraft 模组，允许玩家通过 SSH 协议连接到 Linux 服务器。",
+  "modmenu.descriptionTranslation.linuxssh": "LinuxSSH 是一个 Minecraft 模组，允许玩家通过 SSH 协议连接到 Linux 服务器。它提供了一个简单的命令行界面来执行远程命令和管理服务器。",
   "linuxssh.command.connect": "§a正在连接到 %s...",
   "linuxssh.command.connected": "§a已连接到 %s",
   "linuxssh.command.disconnect": "§a已从 SSH 会话断开连接。",
-  "linuxssh.command.not_connected": "§e您未连接到任何 SSH 服务器。",
-  "linuxssh.command.invalid_format": "§e连接格式无效。请使用：username@host",
+  "linuxssh.command.not_connected": "§c您未连接到任何 SSH 服务器。",
+  "linuxssh.command.invalid_format": "§c连接格式无效。请使用：username@host",
   "linuxssh.command.password_prompt": "§e请使用以下命令输入密码：/ssh password <your_password>",
   "linuxssh.command.fingerprint_prompt": "§e使用 /ssh confirm yes 接受或 /ssh confirm no 拒绝",
   "linuxssh.command.fingerprint_accepted": "§a主机密钥已接受。正在继续连接...",
   "linuxssh.command.fingerprint_rejected": "§c主机密钥已拒绝。连接已终止。",
   "linuxssh.command.key_imported": "§aSSH 密钥导入成功：%s",
-  "linuxssh.command.key_import_error": "§e导入密钥时出错：%s",
+  "linuxssh.command.key_import_error": "§c导入密钥时出错：%s",
   "linuxssh.command.command_output": "%s",
-  "linuxssh.command.error": "§e错误：%s"
+  "linuxssh.command.error": "§c错误：%s"
 }

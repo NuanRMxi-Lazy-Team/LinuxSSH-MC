@@ -41,6 +41,8 @@ fabricApi {
 
 repositories {
     // Add repositories to retrieve artifacts from in here.
+    maven("https://maven.shedaniel.me/") // Cloth Config API
+    maven("https://maven.terraformersmc.com/") // Mod Menu
 }
 
 dependencies {
@@ -56,6 +58,14 @@ dependencies {
     include("com.jcraft:jsch:0.1.55")
 
     modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+    
+    // Cloth Config API
+    modApi("me.shedaniel.cloth:cloth-config-fabric:19.0.147") {
+        exclude(group = "net.fabricmc.fabric-api")
+    }
+    
+    // Mod Menu integration
+    modImplementation("com.terraformersmc:modmenu:15.0.0-beta.3")
 }
 
 tasks.processResources {

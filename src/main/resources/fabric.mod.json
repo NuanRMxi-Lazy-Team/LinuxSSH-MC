@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "linuxssh",
-  "version": "1.1",
+  "version": "${version}",
   "name": "LinuxSSH",
   "description": "A Minecraft mod that allows players to connect to Linux servers via SSH, providing a terminal-like experience within the game.",
   "authors": [
@@ -12,8 +12,8 @@
     "sources": "https://github.com/NuanRMxi-Lazy-Team/LinuxSSH-MC"
   },
   "license": "GPL-3.0",
-  "icon": "/assets/linuxssh/icon.png",
-  "environment": "*",
+  "icon": "assets/linuxssh/icon.png",
+  "environment": "client",
   "entrypoints": {
     "fabric-datagen": [
       "cn.moerain.linuxssh.client.LinuxsshDataGenerator"
@@ -23,6 +23,9 @@
     ],
     "main": [
       "cn.moerain.linuxssh.Linuxssh"
+    ],
+    "modmenu": [
+      "cn.moerain.linuxssh.client.config.ModMenuIntegration"
     ]
   },
   "mixins": [
@@ -33,9 +36,13 @@
     }
   ],
   "depends": {
-    "fabricloader": ">=0.17.0",
-    "fabric-language-kotlin": ">=1.13.4+kotlin.2.2.0",
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${kotlin_loader_version}",
     "fabric": "*",
-    "minecraft": "1.21.8"
+    "minecraft": "${minecraft_version}",
+    "cloth-config": ">=13.0.0"
+  },
+  "suggests": {
+    "modmenu": ">=10.0.0"
   }
 }

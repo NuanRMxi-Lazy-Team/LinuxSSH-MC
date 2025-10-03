@@ -42,6 +42,7 @@
   "linuxssh.hostfingerprint.type": "Type: %s",
   "linuxssh.hostfingerprint.fingerprint": "Fingerprint: %s",
   "linuxssh.config.public_key_label": "Public Key:",
+  "linuxssh.hostfingerprint.clear_all": "Clear All",
   
   "linuxssh.config.category.keys": "SSH Key Management",
   "linuxssh.config.option.prefer_key_authentication": "Prefer Key Authentication",

@@ -41,6 +41,7 @@
   "linuxssh.hostfingerprint.no_hosts": "未找到主机指纹",
   "linuxssh.hostfingerprint.manage": "管理指纹",
   "linuxssh.hostfingerprint.delete": "删除指纹",
+  "linuxssh.hostfingerprint.clear_all": "清除全部",
   "linuxssh.hostfingerprint.type": "类型: %s",
   "linuxssh.hostfingerprint.fingerprint": "指纹: %s",
   "linuxssh.config.public_key_label": "公钥:",

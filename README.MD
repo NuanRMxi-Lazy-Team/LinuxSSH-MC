@@ -6,10 +6,10 @@ A powerful tool that allows you to manage your Linux PC via SSH in Minecraft as 
 
 ## Requirements
 
-* Fabric Loader 0.17.0
-* Fabric API v0.130.0+1.21.8
-* Fabric Language Kotlin v1.13.4+kotlin.2.2.0
-* Minecraft 1.21.8
+* Fabric Loader 0.17.2
+* Fabric API v0.134.1+1.21.10
+* Fabric Language Kotlin v1.13.6+kotlin.2.2.20
+* Minecraft 1.21.10-rc1
 
 ## How to Use?
 

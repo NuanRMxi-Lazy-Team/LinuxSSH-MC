@@ -9,7 +9,7 @@ name: Gradle Package
 
 on:
   release:
-    types: [创建]
+    types: [created]
 
 jobs:
   build:

@@ -1,12 +1,17 @@
+import com.github.javaparser.printer.concretesyntaxmodel.CsmElement.token
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.github.breadmoirai.githubreleaseplugin.GithubReleaseExtension
 
 plugins {
     kotlin("jvm") version "2.2.0"
     id("fabric-loom") version "1.11-SNAPSHOT"
     id("maven-publish")
     id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("com.modrinth.minotaur") version "2.8.7"
+    id("com.matthewprenger.cursegradle") version "1.4.0"
+    id("com.github.breadmoirai.github-release") version "2.5.2"
 }
 
 version = project.property("mod_version") as String
@@ -96,6 +101,29 @@ tasks.jar {
     }
 }
 
+val modVersion: String = project.property("mod_version").toString()
+
+// GitHub Release
+/* 只在 token 存在时才申请并配置插件 */
+val githubToken: String? = findProperty("github.token") as? String
+    ?: System.getenv("RELEASE_TOKEN")
+
+if (!githubToken.isNullOrBlank()) {
+    apply(plugin = "com.github.breadmoirai.github-release")
+
+
+    project.extensions.configure(
+        com.github.breadmoirai.githubreleaseplugin.GithubReleaseExtension::class.java
+    ) {
+        owner = "NuanRMxi-Lazy-Team"
+        repo = "LinuxSSH-MC"
+        tagName = "v$modVersion"
+        releaseName = "v$modVersion"
+        releaseAssets = tasks.remapJar.get().outputs.files
+        draft = false
+        prerelease = false
+    }
+}
 // 移除 ShadowJar 配置，因为 Fabric Loom 已经处理了依赖打包
 tasks.withType<ShadowJar>().configureEach {
     enabled = false

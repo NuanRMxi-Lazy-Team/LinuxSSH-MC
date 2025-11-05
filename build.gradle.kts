@@ -115,6 +115,7 @@ if (!githubToken.isNullOrBlank()) {
     project.extensions.configure(
         com.github.breadmoirai.githubreleaseplugin.GithubReleaseExtension::class.java
     ) {
+        token = project.findProperty("release_token") ?: System.getenv("RELEASE_TOKEN")
         owner = "NuanRMxi-Lazy-Team"
         repo = "LinuxSSH-MC"
         tagName = "v$modVersion"

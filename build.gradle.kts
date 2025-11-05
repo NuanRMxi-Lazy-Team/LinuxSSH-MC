@@ -104,26 +104,32 @@ tasks.jar {
 val modVersion: String = project.property("mod_version").toString()
 
 // GitHub Release
-/* 只在 token 存在时才申请并配置插件 */
-val githubToken: String? = findProperty("release.token") as? String
-    ?: System.getenv("RELEASE_TOKEN")
+githubRelease {
+    // 1. 身份验证：直接调 token(...)
+    token(
+        providers.gradleProperty("release_token")
+            .orElse(providers.environmentVariable("RELEASE_TOKEN"))
+            .getOrElse("")
+    )
 
-if (!githubToken.isNullOrBlank()) {
-    apply(plugin = "com.github.breadmoirai.github-release")
+    // 2. 仓库信息
+    owner.set("NuanRMxi-Lazy-Team")
+    repo.set("LinuxSSH-MC")
 
+    /* ---------- 版本信息 ---------- */
+    tagName.set("v${project.property("modVersion")}")   // 假设 modVersion 在 gradle.properties
+    releaseName.set("v${project.property("modVersion")}")
+    targetCommitish.set("main")                         // 想指别的分支可改
 
-    project.extensions.configure(
-        com.github.breadmoirai.githubreleaseplugin.GithubReleaseExtension::class.java
-    ) {
-        token = project.findProperty("release_token") ?: System.getenv("RELEASE_TOKEN")
-        owner = "NuanRMxi-Lazy-Team"
-        repo = "LinuxSSH-MC"
-        tagName = "v$modVersion"
-        releaseName = "v$modVersion"
-        releaseAssets = tasks.remapJar.get().outputs.files
-        draft = false
-        prerelease = false
-    }
+    /* ---------- 资产上传 ---------- */
+    releaseAssets.setFrom(tasks.remapJar.get().outputs.files)
+
+    /* ---------- 发布选项 ---------- */
+    draft.set(false)
+    prerelease.set(false)
+
+    /* ---------- 发布说明（可选） ---------- */
+    body.set("详见提交记录或 CHANGELOG.md")
 }
 // 移除 ShadowJar 配置，因为 Fabric Loom 已经处理了依赖打包
 tasks.withType<ShadowJar>().configureEach {

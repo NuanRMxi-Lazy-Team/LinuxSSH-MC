@@ -117,8 +117,8 @@ githubRelease {
     repo.set("LinuxSSH-MC")
 
     /* ---------- 版本信息 ---------- */
-    tagName.set("v${project.property("modVersion")}")   // 假设 modVersion 在 gradle.properties
-    releaseName.set("v${project.property("modVersion")}")
+    tagName.set("v${project.property("mod_version")}")   
+    releaseName.set("v${project.property("mod_version")}")
     targetCommitish.set("main")                         // 想指别的分支可改
 
     /* ---------- 资产上传 ---------- */

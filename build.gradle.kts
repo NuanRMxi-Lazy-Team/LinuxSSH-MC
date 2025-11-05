@@ -105,7 +105,7 @@ val modVersion: String = project.property("mod_version").toString()
 
 // GitHub Release
 /* 只在 token 存在时才申请并配置插件 */
-val githubToken: String? = findProperty("github.token") as? String
+val githubToken: String? = findProperty("release.token") as? String
     ?: System.getenv("RELEASE_TOKEN")
 
 if (!githubToken.isNullOrBlank()) {

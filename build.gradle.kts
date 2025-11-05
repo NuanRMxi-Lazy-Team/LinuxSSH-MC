@@ -117,7 +117,7 @@ githubRelease {
     repo.set("LinuxSSH-MC")
 
     /* ---------- 版本信息 ---------- */
-    tagName.set("v${project.property("mod_version")}")   
+    tagName.set("v${project.property("mod_version")}")
     releaseName.set("v${project.property("mod_version")}")
     targetCommitish.set("main")                         // 想指别的分支可改
 

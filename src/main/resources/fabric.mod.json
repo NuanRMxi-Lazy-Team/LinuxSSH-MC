@@ -39,7 +39,7 @@
     "fabricloader": ">=${loader_version}",
     "fabric-language-kotlin": ">=${kotlin_loader_version}",
     "fabric": "*",
-    "minecraft": "1.21.11-alpha.25.43.a"
+    "minecraft": "${minecraft_version}"
   },
   "suggests": {
     "modmenu": ">=10.0.0"

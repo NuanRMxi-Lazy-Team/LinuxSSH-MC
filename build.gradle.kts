@@ -6,7 +6,7 @@ import com.github.breadmoirai.githubreleaseplugin.GithubReleaseExtension
 
 plugins {
     kotlin("jvm") version "2.2.0"
-    id("fabric-loom") version "1.11-SNAPSHOT"
+    id("fabric-loom") version "1.13-SNAPSHOT"
     id("maven-publish")
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("com.modrinth.minotaur") version "2.8.7"
@@ -67,7 +67,7 @@ dependencies {
     // Cloth Config API removed
     
     // Mod Menu integration
-    modImplementation("com.terraformersmc:modmenu:16.0.0-rc.1")
+    modImplementation("com.terraformersmc:modmenu:${project.property("modmenu_version")}")
 }
 
 tasks.processResources {
@@ -115,6 +115,7 @@ githubRelease {
     // 2. 仓库信息
     owner.set("NuanRMxi-Lazy-Team")
     repo.set("LinuxSSH-MC")
+
 
     /* ---------- 版本信息 ---------- */
     tagName.set("v${project.property("mod_version")}")

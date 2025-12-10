@@ -28,12 +28,12 @@ jobs:
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:
-          # When pr-mode is set to true, Qodana analyzes only the files that have been changed
+          # VVVV 【新增或修改】在此处添加兼容的 linter 标签 VVVV
+          linter: jetbrains/qodana-jvm-community:2024.1
+          # ^^^^ 【新增或修改】在此处添加兼容的 linter 标签 ^^^^
           pr-mode: false
           use-caches: true
           post-pr-comment: true
           use-annotations: true
-          # Upload Qodana results (SARIF, other artifacts, logs) as an artifact to the job
           upload-result: false
-          # quick-fixes available in Ultimate and Ultimate Plus plans
           push-fixes: 'none'

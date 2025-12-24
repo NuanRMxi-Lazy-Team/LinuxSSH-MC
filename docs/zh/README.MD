@@ -4,16 +4,28 @@
 
 ## 系统要求
 
-* Fabric Loader 0.17.2
-* Fabric API v0.134.1+1.21.10
-* Fabric Language Kotlin v1.13.6+kotlin.2.2.20
-* Minecraft 1.21.10-rc1
+* Fabric Loader 0.18.3
+* Fabric API v0.140.1+26.1
+* Fabric Language Kotlin v1.13.8+kotlin.2.3.0
+* Minecraft 26.1-snapshot-1
 
 ## 如何使用？
 
 1. 将发布版的 JAR 文件拖入你的 mods 文件夹。
 2. 使用你喜欢的启动器（官方、PCL2 等）启动 Minecraft。
 3. 加载一个世界并开始享受吧！
+
+## 安全警告
+
+进入世界后，会显示一个安全警告通知。**请勿在直播或演示环境中展示 SSH 凭据。** 作者对由此产生的任何安全风险或后果不承担任何责任。
+
+## 配置
+
+你可以通过点击 Minecraft **选项** 菜单中的 **LinuxSSH 配置** 按钮来访问模组配置。在这里，你可以：
+
+* 管理 SSH 设置。
+* 管理主机指纹。
+* 管理 SSH 密钥（生成、复制公钥等）。
 
 ## 命令用法
 

@@ -5,9 +5,10 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
-import net.minecraft.server.command.CommandManager
-import net.minecraft.server.command.ServerCommandSource
-import net.minecraft.text.Text
+import net.minecraft.commands.Commands
+import net.minecraft.commands.CommandSourceStack
+import net.minecraft.network.chat.Component
+import net.minecraft.server.commands.ServerPackCommand
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
@@ -97,63 +98,63 @@ class Linuxssh : ModInitializer {
         }
     }
 
-    private fun registerSshCommand(dispatcher: CommandDispatcher<ServerCommandSource>) {
+    private fun registerSshCommand(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
-            CommandManager.literal("ssh")
+            Commands.literal("ssh")
                 .then(
-                    CommandManager.literal("disconnect")
+                    Commands.literal("disconnect")
                         .executes { context -> handleDisconnect(context) }
                 )
                 .then(
-                    CommandManager.literal("password")
+                    Commands.literal("password")
                         .then(
-                            CommandManager.argument("password", StringArgumentType.greedyString())
+                            Commands.argument("password", StringArgumentType.greedyString())
                                 .executes { context -> handlePasswordInput(context) }
                         )
                 )
                 .then(
-                    CommandManager.literal("confirm")
+                    Commands.literal("confirm")
                         .then(
-                            CommandManager.literal("yes")
+                            Commands.literal("yes")
                                 .executes { context -> handleFingerprintConfirmation(context, true) }
                         )
                         .then(
-                            CommandManager.literal("no")
+                            Commands.literal("no")
                                 .executes { context -> handleFingerprintConfirmation(context, false) }
                         )
                 )
                 .then(
-                    CommandManager.literal("key")
+                    Commands.literal("key")
                         .then(
-                            CommandManager.literal("import")
+                            Commands.literal("import")
                                 .then(
-                                    CommandManager.argument("keypath", StringArgumentType.greedyString())
+                                    Commands.argument("keypath", StringArgumentType.greedyString())
                                         .executes { context -> handleKeyImport(context) }
                                 )
                         )
                         .then(
-                            CommandManager.literal("generate")
+                            Commands.literal("generate")
                                 .executes { context -> handleKeyGenerate(context) }
                         )
                 )
                 .then(
-                    CommandManager.literal("connect")
+                    Commands.literal("connect")
                         .then(
-                            CommandManager.argument("connection", StringArgumentType.greedyString())
+                            Commands.argument("connection", StringArgumentType.greedyString())
                                 .executes { context -> handleSshConnect(context) }
                         )
                 )
                 .then(
-                    CommandManager.literal("command")
+                    Commands.literal("command")
                         .then(
-                            CommandManager.argument("command", StringArgumentType.greedyString())
+                            Commands.argument("command", StringArgumentType.greedyString())
                                 .executes { context -> handleSshCommand(context) }
                         )
                 )
         )
     }
 
-    private fun handleFingerprintConfirmation(context: CommandContext<ServerCommandSource>, confirmed: Boolean): Int {
+    private fun handleFingerprintConfirmation(context: CommandContext<CommandSourceStack>, confirmed: Boolean): Int {
         val source = context.source
         val player = source.player ?: return 0
 
@@ -162,18 +163,18 @@ class Linuxssh : ModInitializer {
             fingerprintCallback(confirmed)
             pendingFingerprints.remove(player.uuid)
             if (confirmed) {
-                source.sendFeedback({ Text.translatable("linuxssh.command.fingerprint_accepted") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.fingerprint_accepted") }, false)
             } else {
-                source.sendFeedback({ Text.translatable("linuxssh.command.fingerprint_rejected") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.fingerprint_rejected") }, false)
             }
         } else {
-            source.sendFeedback({ Text.translatable("linuxssh.command.not_connected") }, false)
+            source.sendSuccess({ Component.translatable("linuxssh.command.not_connected") }, false)
         }
 
         return 1
     }
 
-    private fun handleDisconnect(context: CommandContext<ServerCommandSource>): Int {
+    private fun handleDisconnect(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val player = source.player ?: return 0
 
@@ -181,15 +182,15 @@ class Linuxssh : ModInitializer {
         if (session != null && session.isConnected) {
             session.disconnect()
             activeSessions.remove(player.uuid)
-            source.sendFeedback({ Text.translatable("linuxssh.command.disconnect") }, false)
+            source.sendSuccess({ Component.translatable("linuxssh.command.disconnect") }, false)
         } else {
-            source.sendFeedback({ Text.translatable("linuxssh.command.not_connected") }, false)
+            source.sendSuccess({ Component.translatable("linuxssh.command.not_connected") }, false)
         }
 
         return 1
     }
 
-    private fun handlePasswordInput(context: CommandContext<ServerCommandSource>): Int {
+    private fun handlePasswordInput(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val player = source.player ?: return 0
         val password = StringArgumentType.getString(context, "password")
@@ -198,15 +199,15 @@ class Linuxssh : ModInitializer {
         if (passwordCallback != null) {
             passwordCallback(password)
             pendingPasswords.remove(player.uuid)
-            source.sendFeedback({ Text.translatable("linuxssh.command.password_prompt") }, false)
+            source.sendSuccess({ Component.translatable("linuxssh.command.password_prompt") }, false)
         } else {
-            source.sendFeedback({ Text.translatable("linuxssh.command.not_connected") }, false)
+            source.sendSuccess({ Component.translatable("linuxssh.command.not_connected") }, false)
         }
 
         return 1
     }
 
-    private fun handleKeyImport(context: CommandContext<ServerCommandSource>): Int {
+    private fun handleKeyImport(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val player = source.player ?: return 0
         val keyPath = StringArgumentType.getString(context, "keypath")
@@ -215,7 +216,7 @@ class Linuxssh : ModInitializer {
             try {
                 val keyFile = File(keyPath)
                 if (!keyFile.exists() || !keyFile.isFile) {
-                    source.sendFeedback({ Text.translatable("linuxssh.command.key_import_error", keyPath) }, false)
+                    source.sendSuccess({ Component.translatable("linuxssh.command.key_import_error", keyPath) }, false)
                     return@runAsync
                 }
 
@@ -239,7 +240,7 @@ class Linuxssh : ModInitializer {
                             it
                         }
                     } ?: "unknown error"
-                    source.sendFeedback({ Text.translatable("linuxssh.command.key_import_error", errorMsg) }, false)
+                    source.sendSuccess({ Component.translatable("linuxssh.command.key_import_error", errorMsg) }, false)
                     return@runAsync
                 }
 
@@ -247,13 +248,13 @@ class Linuxssh : ModInitializer {
                 val targetFile = File(playerKeyDir, keyFile.name)
                 keyFile.copyTo(targetFile, overwrite = true)
 
-                source.sendFeedback({ Text.translatable("linuxssh.command.key_imported", keyFile.name) }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.key_imported", keyFile.name) }, false)
                 
                 // Display the key content for copying and viewing
                 val keyContent = keyFile.readText()
-                source.sendFeedback({ Text.translatable("linuxssh.key.imported_content_header") }, false)
-                source.sendFeedback({ Text.literal("§a$keyContent") }, false)
-                source.sendFeedback({ Text.translatable("linuxssh.key.imported_content_footer") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.key.imported_content_header") }, false)
+                source.sendSuccess({ Component.literal("§a$keyContent") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.key.imported_content_footer") }, false)
                 
                 // If this is a private key, check if there's a corresponding public key
                 if (!keyFile.name.endsWith(".pub")) {
@@ -265,15 +266,15 @@ class Linuxssh : ModInitializer {
                         
                         // Display the public key content
                         val publicKeyContent = publicKeyFile.readText()
-                        source.sendFeedback({ Text.translatable("linuxssh.key.imported_public_content_header") }, false)
-                        source.sendFeedback({ Text.literal("§a$publicKeyContent") }, false)
-                        source.sendFeedback({ Text.translatable("linuxssh.key.imported_public_content_footer") }, false)
+                        source.sendSuccess({ Component.translatable("linuxssh.key.imported_public_content_header") }, false)
+                        source.sendSuccess({ Component.literal("§a$publicKeyContent") }, false)
+                        source.sendSuccess({ Component.translatable("linuxssh.key.imported_public_content_footer") }, false)
                         
-                        source.sendFeedback({ Text.translatable("linuxssh.command.key_imported", publicKeyFile.name) }, false)
+                        source.sendSuccess({ Component.translatable("linuxssh.command.key_imported", publicKeyFile.name) }, false)
                     }
                 }
             } catch (e: Exception) {
-                source.sendFeedback({ Text.translatable("linuxssh.command.key_import_error", e.message) }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.key_import_error", e.message ?: "") }, false)
                 e.printStackTrace()
             }
         }
@@ -281,14 +282,14 @@ class Linuxssh : ModInitializer {
         return 1
     }
     
-    private fun handleKeyGenerate(context: CommandContext<ServerCommandSource>): Int {
+    private fun handleKeyGenerate(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val player = source.player ?: return 0
         
         // Check if key generation is enabled in config
         val config = LinuxsshConfig.getInstance()
         if (!config.enableKeyGeneration) {
-            source.sendFeedback({ Text.translatable("linuxssh.command.key_generation_disabled") }, false)
+            source.sendSuccess({ Component.translatable("linuxssh.command.key_generation_disabled") }, false)
             return 1
         }
 
@@ -316,24 +317,24 @@ class Linuxssh : ModInitializer {
                 // Dispose of the key pair
                 keyPair.dispose()
                 
-                source.sendFeedback({ Text.translatable("linuxssh.command.key_generated") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.key_generated") }, false)
                 
                 // Display the private key content for copying and viewing
                 val privateKeyContent = privateKeyFile.readText()
-                source.sendFeedback({ Text.translatable("linuxssh.key.generated_private_header") }, false)
-                source.sendFeedback({ Text.literal("§a$privateKeyContent") }, false)
-                source.sendFeedback({ Text.translatable("linuxssh.key.generated_private_footer") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.key.generated_private_header") }, false)
+                source.sendSuccess({ Component.literal("§a$privateKeyContent") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.key.generated_private_footer") }, false)
                 
                 // Display the public key content for copying and viewing
                 val publicKeyContent = publicKeyFile.readText()
-                source.sendFeedback({ Text.translatable("linuxssh.key.generated_public_header") }, false)
-                source.sendFeedback({ Text.literal("§a$publicKeyContent") }, false)
-                source.sendFeedback({ Text.translatable("linuxssh.key.generated_public_footer") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.key.generated_public_header") }, false)
+                source.sendSuccess({ Component.literal("§a$publicKeyContent") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.key.generated_public_footer") }, false)
                 
                 // Additional message for using the keys
-                source.sendFeedback({ Text.translatable("linuxssh.command.key_usage_info") }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.key_usage_info") }, false)
             } catch (e: Exception) {
-                source.sendFeedback({ Text.translatable("linuxssh.command.key_generation_error", e.message) }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.key_generation_error", e.message ?: "") }, false)
                 e.printStackTrace()
             }
         }
@@ -341,7 +342,7 @@ class Linuxssh : ModInitializer {
         return 1
     }
 
-    private fun handleSshConnect(context: CommandContext<ServerCommandSource>): Int {
+    private fun handleSshConnect(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val player = source.player
         val connectionString = StringArgumentType.getString(context, "connection")
@@ -353,7 +354,7 @@ class Linuxssh : ModInitializer {
                 if (connectionString.contains("@")) {
                     val parts = connectionString.split("@")
                     if (parts.size != 2) {
-                        source.sendFeedback({ Text.translatable("linuxssh.command.invalid_format") }, false)
+                        source.sendSuccess({ Component.translatable("linuxssh.command.invalid_format") }, false)
                         return@runAsync
                     }
 
@@ -379,7 +380,7 @@ class Linuxssh : ModInitializer {
                                 if (keyFile.isFile) {
                                     try {
                                         jsch.addIdentity(keyFile.absolutePath)
-                                        source.sendFeedback({ Text.translatable("linuxssh.command.key_imported", keyFile.name) }, false)
+                                        source.sendSuccess({ Component.translatable("linuxssh.command.key_imported", keyFile.name) }, false)
                                     } catch (e: JSchException) {
                                         // Clean up error message to avoid displaying byte arrays
                                         val errorMsg = e.message?.let {
@@ -389,7 +390,7 @@ class Linuxssh : ModInitializer {
                                                 it
                                             }
                                         } ?: "unknown error"
-                                        source.sendFeedback({ Text.translatable("linuxssh.command.key_import_error", errorMsg) }, false)
+                                        source.sendSuccess({ Component.translatable("linuxssh.command.key_import_error", errorMsg) }, false)
                                     }
                                 }
                             }
@@ -400,7 +401,7 @@ class Linuxssh : ModInitializer {
                     val config = LinuxsshConfig.getInstance()
                     if (config.deleteHostFingerprint) {
                         if (deleteHostFingerprint(host)) {
-                            source.sendFeedback({ Text.translatable("linuxssh.command.fingerprint_deleted", host) }, false)
+                            source.sendSuccess({ Component.translatable("linuxssh.command.fingerprint_deleted", host) }, false)
                         }
                     }
                     
@@ -427,14 +428,14 @@ class Linuxssh : ModInitializer {
 
                                 // Format and display the fingerprint message
                                 val formattedMessage = message.replace("\n", " ")
-                                source.sendFeedback({ Text.literal("§e$formattedMessage") }, false)
-                                source.sendFeedback({ Text.translatable("linuxssh.command.fingerprint_prompt") }, false)
+                                source.sendSuccess({ Component.literal("§e$formattedMessage") }, false)
+                                source.sendSuccess({ Component.translatable("linuxssh.command.fingerprint_prompt") }, false)
 
                                 // Wait for user confirmation
                                 return try {
                                     fingerprintPromise.get() // This will block until confirmation is provided
                                 } catch (e: Exception) {
-                                    source.sendFeedback({ Text.translatable("linuxssh.command.fingerprint_rejected") }, false)
+                                    source.sendSuccess({ Component.translatable("linuxssh.command.fingerprint_rejected") }, false)
                                     pendingFingerprints.remove(player.uuid)
                                     false
                                 }
@@ -447,12 +448,12 @@ class Linuxssh : ModInitializer {
                             override fun promptPassphrase(message: String): Boolean = false
                             override fun getPassphrase(): String? = null
                             override fun showMessage(message: String) {
-                                source.sendFeedback({ Text.translatable("linuxssh.command.fingerprint_prompt") }, false)
+                                source.sendSuccess({ Component.translatable("linuxssh.command.fingerprint_prompt") }, false)
                             }
                         })
                     }
 
-                    source.sendFeedback({ Text.translatable("linuxssh.command.connect", "$username@$host") }, false)
+                    source.sendSuccess({ Component.translatable("linuxssh.command.connect", "$username@$host") }, false)
 
                     // Check if we should try key authentication first
                     var authSuccess = false
@@ -462,10 +463,10 @@ class Linuxssh : ModInitializer {
                             // Try to connect with key authentication
                             session.connect(5000) // 5 second timeout for key auth
                             authSuccess = true
-                            source.sendFeedback({ Text.translatable("linuxssh.command.connected", host) }, false)
+                            source.sendSuccess({ Component.translatable("linuxssh.command.connected", host) }, false)
                         } catch (e: Exception) {
                             // Key authentication failed, fall back to password
-                            source.sendFeedback({ Text.translatable("linuxssh.command.key_auth_failed") }, false)
+                            source.sendSuccess({ Component.translatable("linuxssh.command.key_auth_failed") }, false)
                         }
                     }
                     
@@ -477,7 +478,7 @@ class Linuxssh : ModInitializer {
                             passwordPromise.complete(password)
                         }
 
-                        source.sendFeedback({ Text.translatable("linuxssh.command.password_prompt") }, false)
+                        source.sendSuccess({ Component.translatable("linuxssh.command.password_prompt") }, false)
 
                         // Set password when provided
                         try {
@@ -487,9 +488,9 @@ class Linuxssh : ModInitializer {
                             // Connect with password
                             session.connect(30000) // 30 second timeout for password auth
                             authSuccess = true
-                            source.sendFeedback({ Text.translatable("linuxssh.command.connected", host) }, false)
+                            source.sendSuccess({ Component.translatable("linuxssh.command.connected", host) }, false)
                         } catch (e: Exception) {
-                            source.sendFeedback({ Text.translatable("linuxssh.command.connection_failed", e.message) }, false)
+                            source.sendSuccess({ Component.translatable("linuxssh.command.connection_failed", e.message ?: "") }, false)
                             pendingPasswords.remove(player.uuid)
                             return@runAsync
                         }
@@ -499,10 +500,10 @@ class Linuxssh : ModInitializer {
                         activeSessions[it.uuid] = session
                     }
                 } else {
-                    source.sendFeedback({ Text.translatable("linuxssh.command.invalid_format") }, false)
+                    source.sendSuccess({ Component.translatable("linuxssh.command.invalid_format") }, false)
                 }
             } catch (e: Exception) {
-                source.sendFeedback({ Text.translatable("linuxssh.command.error", e.message) }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.error", e.message ?: "") }, false)
                 e.printStackTrace()
             }
         }
@@ -510,7 +511,7 @@ class Linuxssh : ModInitializer {
         return 1
     }
 
-    private fun handleSshCommand(context: CommandContext<ServerCommandSource>): Int {
+    private fun handleSshCommand(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val player = source.player
         val command = StringArgumentType.getString(context, "command")
@@ -521,7 +522,7 @@ class Linuxssh : ModInitializer {
                 val session = player?.let { activeSessions[it.uuid] }
 
                 if (session == null || !session.isConnected) {
-                    source.sendFeedback({ Text.translatable("linuxssh.command.not_connected") }, false)
+                    source.sendSuccess({ Component.translatable("linuxssh.command.not_connected") }, false)
                     return@runAsync
                 }
 
@@ -539,12 +540,13 @@ class Linuxssh : ModInitializer {
                 // Read and display output
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
-                    source.sendFeedback({ Text.translatable("linuxssh.command.command_output", line) }, false)
+                    val currentLine = line ?: ""
+                    source.sendSuccess({ Component.translatable("linuxssh.command.command_output", currentLine) }, false)
                 }
 
                 channel.disconnect()
             } catch (e: Exception) {
-                source.sendFeedback({ Text.translatable("linuxssh.command.error", e.message) }, false)
+                source.sendSuccess({ Component.translatable("linuxssh.command.error", e.message ?: "") }, false)
                 e.printStackTrace()
             }
         }

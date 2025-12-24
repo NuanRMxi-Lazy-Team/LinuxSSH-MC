@@ -58,5 +58,9 @@
   
   "linuxssh.command.key_generated": "§aSSH key pair generated successfully",
   "linuxssh.command.key_generation_error": "§cError generating SSH key pair: %s",
-  "linuxssh.command.public_key_copied": "§aPublic key copied to clipboard"
+  "linuxssh.command.public_key_copied": "§aPublic key copied to clipboard",
+  "linuxssh.config.saved.title": "LinuxSSH",
+  "linuxssh.config.saved.message": "Settings saved successfully",
+  "linuxssh.toast.warning.title": "Security Warning",
+  "linuxssh.toast.warning.message": "Do not display SSH credentials in live streams or demo environments. The author is not responsible for any consequences."
 }

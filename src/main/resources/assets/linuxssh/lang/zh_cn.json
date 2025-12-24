@@ -60,5 +60,9 @@
   
   "linuxssh.command.key_generated": "§aSSH 密钥对生成成功",
   "linuxssh.command.key_generation_error": "§c生成 SSH 密钥对时出错：%s",
-  "linuxssh.command.public_key_copied": "§a公钥已复制到剪贴板"
+  "linuxssh.command.public_key_copied": "§a公钥已复制到剪贴板",
+  "linuxssh.config.saved.title": "LinuxSSH",
+  "linuxssh.config.saved.message": "设置已成功保存",
+  "linuxssh.toast.warning.title": "安全警告",
+  "linuxssh.toast.warning.message": "请勿在直播或演示环境中展示 SSH 凭据，否则作者不承担任何后果。"
 }

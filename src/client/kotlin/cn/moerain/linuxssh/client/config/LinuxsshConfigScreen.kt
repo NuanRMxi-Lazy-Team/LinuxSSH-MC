@@ -1,12 +1,13 @@
 package cn.moerain.linuxssh.client.config
 
 import cn.moerain.linuxssh.config.LinuxsshConfig
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.screen.Screen
-import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.client.gui.widget.CyclingButtonWidget
-import net.minecraft.text.Text
+import net.minecraft.client.Minecraft
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.CycleButton
+import net.minecraft.client.gui.components.toasts.SystemToast
+import net.minecraft.network.chat.Component
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.KeyPair
 import java.awt.Toolkit
@@ -16,17 +17,18 @@ import java.io.FileOutputStream
 
 /**
  * Simple custom configuration screen for LinuxSSH without Cloth Config
+ * @author Celesita
  */
 object LinuxsshConfigScreen {
     fun create(parent: Screen?): Screen {
-        return object : Screen(Text.translatable("linuxssh.config.title")) {
+        return object : Screen(Component.translatable("linuxssh.config.title")) {
             private val config = LinuxsshConfig.getInstance()
             private var parentScreen: Screen? = parent
             private var showMessage: String? = null
 
             override fun init() {
                 super.init()
-                this.clearChildren()
+                this.clearWidgets()
 
                 var y = 40
                 val x = this.width / 2 - 150
@@ -34,10 +36,10 @@ object LinuxsshConfigScreen {
                 val buttonHeight = 20
 
                 // Toggle: prefer key authentication
-                addDrawableChild(
-                    CyclingButtonWidget.onOffBuilder(config.preferKeyAuthentication)
-                        .build(x, y, buttonWidth, buttonHeight,
-                            Text.translatable("linuxssh.config.option.prefer_key_authentication")
+                addRenderableWidget(
+                    CycleButton.onOffBuilder(config.preferKeyAuthentication)
+                        .create(x, y, buttonWidth, buttonHeight,
+                            Component.translatable("linuxssh.config.option.prefer_key_authentication")
                         ) { _, value: Boolean ->
                             config.preferKeyAuthentication = value
                             LinuxsshConfig.save()
@@ -46,36 +48,36 @@ object LinuxsshConfigScreen {
                 y += 24
 
                 // Toggle: enable key generation
-                addDrawableChild(
-                    CyclingButtonWidget.onOffBuilder(config.enableKeyGeneration)
-                        .build(x, y, buttonWidth, buttonHeight,
-                            Text.translatable("linuxssh.config.option.enable_key_generation")
+                addRenderableWidget(
+                    CycleButton.onOffBuilder(config.enableKeyGeneration)
+                        .create(x, y, buttonWidth, buttonHeight,
+                            Component.translatable("linuxssh.config.option.enable_key_generation")
                         ) { _, value: Boolean ->
                             config.enableKeyGeneration = value
                             LinuxsshConfig.save()
-                            this.rebuildWidgets()
+                            this.refreshWidgets()
                         }
                 )
                 y += 24
 
                 // Toggle: show public key
-                addDrawableChild(
-                    CyclingButtonWidget.onOffBuilder(config.showPublicKeyPassword)
-                        .build(x, y, buttonWidth, buttonHeight,
-                            Text.translatable("linuxssh.config.option.show_public_key_password")
+                addRenderableWidget(
+                    CycleButton.onOffBuilder(config.showPublicKeyPassword)
+                        .create(x, y, buttonWidth, buttonHeight,
+                            Component.translatable("linuxssh.config.option.show_public_key_password")
                         ) { _, value: Boolean ->
                             config.showPublicKeyPassword = value
                             LinuxsshConfig.save()
-                            this.rebuildWidgets()
+                            this.refreshWidgets()
                         }
                 )
                 y += 24
 
                 // Toggle: delete host fingerprint flag
-                addDrawableChild(
-                    CyclingButtonWidget.onOffBuilder(config.deleteHostFingerprint)
-                        .build(x, y, buttonWidth, buttonHeight,
-                            Text.translatable("linuxssh.config.option.delete_host_fingerprint")
+                addRenderableWidget(
+                    CycleButton.onOffBuilder(config.deleteHostFingerprint)
+                        .create(x, y, buttonWidth, buttonHeight,
+                            Component.translatable("linuxssh.config.option.delete_host_fingerprint")
                         ) { _, value: Boolean ->
                             config.deleteHostFingerprint = value
                             LinuxsshConfig.save()
@@ -83,7 +85,7 @@ object LinuxsshConfigScreen {
                 )
                 y += 28
 
-                val client = MinecraftClient.getInstance()
+                val client = Minecraft.getInstance()
                 val playerUuid = client.player?.uuid?.toString() ?: "unknown"
                 val playerKeyDir = File("config/linuxssh/keys/$playerUuid").apply { if (!exists()) mkdirs() }
                 val privateKeyFile = File(playerKeyDir, "id_rsa")
@@ -91,8 +93,8 @@ object LinuxsshConfigScreen {
 
                 // Generate keys button
                 if (config.enableKeyGeneration) {
-                    addDrawableChild(ButtonWidget.builder(
-                        Text.translatable("linuxssh.config.option.generate_keys")
+                    addRenderableWidget(Button.builder(
+                        Component.translatable("linuxssh.config.option.generate_keys")
                     ) {
                         try {
                             val keyPair = KeyPair.genKeyPair(JSch(), KeyPair.RSA, 2048)
@@ -100,20 +102,20 @@ object LinuxsshConfigScreen {
                             keyPair.writePublicKey(FileOutputStream(publicKeyFile), "")
                             keyPair.dispose()
                             showMessage = "Keys generated"
-                            this.rebuildWidgets()
+                            this.refreshWidgets()
                         } catch (e: Exception) {
-                            showMessage = "Failed to generate keys: ${'$'}{e.message}"
+                            showMessage = "Failed to generate keys: ${e.message}"
                             e.printStackTrace()
                         }
-                    }.dimensions(x, y, buttonWidth, buttonHeight).build())
+                    }.bounds(x, y, buttonWidth, buttonHeight).build())
                     y += 24
                 }
 
                 // Show/copy public key if requested
                 if (publicKeyFile.exists() && config.showPublicKeyPassword) {
                     val content = try { publicKeyFile.readText() } catch (e: Exception) { "" }
-                    addDrawableChild(ButtonWidget.builder(
-                        Text.translatable("linuxssh.config.option.copy_public_key")
+                    addRenderableWidget(Button.builder(
+                        Component.translatable("linuxssh.config.option.copy_public_key")
                     ) {
                         try {
                             val selection = StringSelection(content)
@@ -121,15 +123,15 @@ object LinuxsshConfigScreen {
                             clipboard.setContents(selection, selection)
                             showMessage = "Public key copied"
                         } catch (e: Exception) {
-                            showMessage = "Failed to copy: ${'$'}{e.message}"
+                            showMessage = "Failed to copy: ${e.message}"
                         }
-                    }.dimensions(x, y, buttonWidth, buttonHeight).build())
+                    }.bounds(x, y, buttonWidth, buttonHeight).build())
                     y += 24
                 }
 
                 // Manage known_hosts: simple clear button
-                addDrawableChild(ButtonWidget.builder(
-                    Text.translatable("linuxssh.hostfingerprint.clear_all")
+                addRenderableWidget(Button.builder(
+                    Component.translatable("linuxssh.hostfingerprint.clear_all")
                 ) {
                     try {
                         val knownHostsFile = File("config/linuxssh/known_hosts")
@@ -138,54 +140,69 @@ object LinuxsshConfigScreen {
                         }
                         showMessage = "Known hosts cleared"
                     } catch (e: Exception) {
-                        showMessage = "Failed to clear: ${'$'}{e.message}"
+                        showMessage = "Failed to clear: ${e.message}"
                     }
-                }.dimensions(x, y, buttonWidth, buttonHeight).build())
+                }.bounds(x, y, buttonWidth, buttonHeight).build())
                 y += 28
 
                 // Done button
-                addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done")) {
+                addRenderableWidget(Button.builder(Component.translatable("gui.done")) {
                     LinuxsshConfig.save()
-                    this.client?.setScreen(parentScreen)
-                }.dimensions(this.width / 2 - 100, this.height - 28, 200, 20).build())
+                    showSaveToast()
+                    this.minecraft?.setScreen(parentScreen)
+                }.bounds(this.width / 2 - 100, this.height - 28, 200, 20).build())
             }
 
-            private fun rebuildWidgets() {
+            private fun refreshWidgets() {
                 // Rebuild the screen to reflect changes
-                this.clearChildren()
+                this.clearWidgets()
                 this.init()
             }
 
-            override fun renderBackground(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+            override fun renderBackground(graphics: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
                 // Ensure a proper background is rendered (e.g., dirt/gradient) to avoid visual artifacts
                 // Delegate to the default background rendering provided by Screen
-                super.renderBackground(context, mouseX, mouseY, delta)
+                super.renderBackground(graphics, mouseX, mouseY, delta)
             }
 
-            override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+            override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
                 // Do not call renderBackground here; Screen.render will handle it once per frame
-                super.render(context, mouseX, mouseY, delta)
+                super.render(graphics, mouseX, mouseY, delta)
                 // Title
-                context.drawCenteredTextWithShadow(textRenderer, this.title, this.width / 2, 15, 0xFFFFFF)
+                graphics.drawCenteredString(font, this.title, this.width / 2, 15, 0xFFFFFF)
                 // Optional message line
                 showMessage?.let {
-                    context.drawCenteredTextWithShadow(textRenderer, Text.literal(it), this.width / 2, 28, 0xA0FFA0)
+                    graphics.drawCenteredString(font, Component.literal(it), this.width / 2, 28, 0xA0FFA0)
                 }
 
                 // If showing public key, draw a preview text (first 80 chars)
-                val client = MinecraftClient.getInstance()
+                val client = Minecraft.getInstance()
                 val playerUuid = client.player?.uuid?.toString() ?: "unknown"
                 val publicKeyFile = File("config/linuxssh/keys/$playerUuid/id_rsa.pub")
                 if (publicKeyFile.exists() && LinuxsshConfig.getInstance().showPublicKeyPassword) {
                     val preview = try { publicKeyFile.readText().take(80) } catch (_: Exception) { "" }
-                    context.drawCenteredTextWithShadow(textRenderer,
-                        Text.literal(preview), this.width / 2, 120, 0xCCCCCC)
+                    graphics.drawCenteredString(font,
+                        Component.literal(preview), this.width / 2, 120, 0xCCCCCC)
                 }
             }
 
-            override fun close() {
+            override fun removed() {
                 LinuxsshConfig.save()
-                this.client?.setScreen(parentScreen)
+            }
+
+            override fun onClose() {
+                this.minecraft?.setScreen(parentScreen)
+            }
+
+            private fun showSaveToast() {
+                val client = Minecraft.getInstance()
+                client.toastManager.addToast(
+                    SystemToast(
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.translatable("linuxssh.config.saved.title"),
+                        Component.translatable("linuxssh.config.saved.message")
+                    )
+                )
             }
         }
     }

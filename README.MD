@@ -6,10 +6,22 @@ A powerful tool that allows you to manage your Linux PC via SSH in Minecraft as 
 
 ## Requirements
 
-* Fabric Loader 0.17.2
-* Fabric API v0.134.1+1.21.10
-* Fabric Language Kotlin v1.13.6+kotlin.2.2.20
-* Minecraft 1.21.10-rc1
+* Fabric Loader 0.18.3
+* Fabric API v0.140.1+26.1
+* Fabric Language Kotlin v1.13.8+kotlin.2.3.0
+* Minecraft 26.1-snapshot-1
+
+## Security Warning
+
+Upon entering a world, a security warning will appear as a toast notification. **Do not display SSH credentials in live streams or demo environments.** The author is not responsible for any security risks or consequences arising from such actions.
+
+## Configuration
+
+You can access the mod configuration by clicking the **LinuxSSH Configuration** button in the Minecraft **Options** menu. From there, you can:
+
+* Manage SSH settings.
+* Manage host fingerprints.
+* Manage SSH keys (Generate, Copy public key, etc.).
 
 ## How to Use?
 

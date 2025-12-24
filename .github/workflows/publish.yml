@@ -20,7 +20,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build & Remap
-        run: ./gradlew remapJar
+        run: ./gradlew jar
 
       - name: Build Jar
         run: ./gradlew build

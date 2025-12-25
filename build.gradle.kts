@@ -80,7 +80,7 @@ dependencies {
     // 因为在该版本中，不需要对依赖进行重映射（Remap），所以普通的 implementation 也是生效的。
     implementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
     implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
-    modImplementation("com.jcraft.jsch:jsch:0.1.55")
+    implementation("com.jcraft.jsch:jsch:0.1.55")
     include("com.jcraft.jsch:jsch:0.1.55")
     // 暂时不要使用全量的 fabric-api，因为它包含了太多还没适配新环境的 AW 文件
     implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")

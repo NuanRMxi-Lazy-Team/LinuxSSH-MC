@@ -37,10 +37,5 @@
     "fabric-language-kotlin": ">=${kotlin_loader_version}",
 
     "minecraft": "26.1-alpha.1"
-  },
-  "jars": [
-  {
-    "file": "META-INF/jars/jsch-0.2.16.jar"
   }
-]
 }

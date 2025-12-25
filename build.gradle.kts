@@ -81,6 +81,7 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
     implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
     implementation("com.github.mwiede:jsch:0.2.16")
+    include("com.github.mwiede:jsch:0.2.16")
     // 暂时不要使用全量的 fabric-api，因为它包含了太多还没适配新环境的 AW 文件
     implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
     

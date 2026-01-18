@@ -541,7 +541,8 @@ class Linuxssh : ModInitializer {
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
                     val currentLine = line ?: ""
-                    source.sendSuccess({ Component.translatable("linuxssh.command.command_output", currentLine) }, false)
+                    val formattedLine = formatAnsiToMinecraft(currentLine)
+                    source.sendSuccess({ Component.literal(formattedLine) }, false)
                 }
 
                 channel.disconnect()
@@ -552,5 +553,49 @@ class Linuxssh : ModInitializer {
         }
 
         return 1
+    }
+
+    private fun formatAnsiToMinecraft(input: String): String {
+        // Standard ANSI colors
+        val colorMap = mapOf(
+            "0;30" to "§0", // Black
+            "0;34" to "§1", // Dark Blue
+            "0;32" to "§2", // Dark Green
+            "0;36" to "§3", // Dark Aqua
+            "0;31" to "§4", // Dark Red
+            "0;35" to "§5", // Dark Purple
+            "0;33" to "§6", // Gold
+            "0;37" to "§7", // Gray
+            "1;30" to "§8", // Dark Gray
+            "1;34" to "§9", // Blue
+            "1;32" to "§a", // Green
+            "1;36" to "§b", // Aqua
+            "1;31" to "§c", // Red
+            "1;35" to "§d", // Light Purple
+            "1;33" to "§e", // Yellow
+            "1;37" to "§f", // White
+            "30" to "§0",
+            "34" to "§1",
+            "32" to "§2",
+            "36" to "§3",
+            "31" to "§4",
+            "35" to "§5",
+            "33" to "§6",
+            "37" to "§7",
+            "0" to "§r",   // Reset
+            "1" to "§l",   // Bold
+            "4" to "§n",   // Underline
+        )
+
+        val pattern = java.util.regex.Pattern.compile("\u001B\\[([0-9;]+)m")
+        val matcher = pattern.matcher(input)
+        val sb = StringBuffer()
+        while (matcher.find()) {
+            val code = matcher.group(1)
+            val replacement = colorMap[code] ?: ""
+            matcher.appendReplacement(sb, replacement)
+        }
+        matcher.appendTail(sb)
+        return sb.toString()
     }
 }

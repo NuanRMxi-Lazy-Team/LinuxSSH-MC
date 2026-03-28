@@ -4,7 +4,9 @@
   "package": "cn.moerain.linuxssh.mixin.client",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "OptionsScreenMixin"
+    "OptionsScreenMixin",
+    "TitleScreenMixin",
+    "PauseScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

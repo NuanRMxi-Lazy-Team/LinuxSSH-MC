@@ -8,10 +8,8 @@ val kotlin_loader_version: String by project
 
 
 plugins {
-    kotlin("jvm") version "2.3.0"
-    // 同时应用这两个插件，或者回退到 fabric-loom 但配合 useIntermediateMappings (如果版本支持)
-    // 针对 26.1-snapshot-1，目前最稳妥的组合如下：
-    id("net.fabricmc.fabric-loom") version "1.14-SNAPSHOT"
+    kotlin("jvm") version "2.3.20"
+    id("net.fabricmc.fabric-loom") version "1.15.5"
     id("maven-publish")
     id("com.modrinth.minotaur") version "2.8.7"
     id("com.matthewprenger.cursegradle") version "1.4.0"
@@ -44,10 +42,6 @@ java {
 }
 
 loom {
-    // 显式禁用重映射，确保进入“非混淆模式”
-    // 注意：在 net.fabricmc.fabric-loom 插件中，这个属性是核心开关
-    (this as ExtensionAware).extensions.extraProperties.set("useIntermediateMappings", false)
-
     splitEnvironmentSourceSets()
 
     mods {
@@ -76,13 +70,13 @@ repositories {
 dependencies {
     minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
     
-    // 如果 modImplementation 报错，尝试直接使用普通的 implementation。
-    // 因为在该版本中，不需要对依赖进行重映射（Remap），所以普通的 implementation 也是生效的。
     implementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
     implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
-    implementation("com.github.mwiede:jsch:0.2.16")
-    // 暂时不要使用全量的 fabric-api，因为它包含了太多还没适配新环境的 AW 文件
+    implementation("com.jcraft:jsch:0.1.55")
+    include("com.jcraft:jsch:0.1.55")
     implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+    
+    // Any other use of modImplementation, modCompileOnly should be switched to implementation or compileOnly
     
 
 
@@ -113,7 +107,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(JvmTarget.DEFAULT)
+        jvmTarget.set(JvmTarget.JVM_25)
     }
 }
 

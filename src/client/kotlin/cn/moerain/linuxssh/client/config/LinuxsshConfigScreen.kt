@@ -2,7 +2,6 @@ package cn.moerain.linuxssh.client.config
 
 import cn.moerain.linuxssh.config.LinuxsshConfig
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.CycleButton
@@ -149,7 +148,7 @@ object LinuxsshConfigScreen {
                 addRenderableWidget(Button.builder(Component.translatable("gui.done")) {
                     LinuxsshConfig.save()
                     showSaveToast()
-                    this.minecraft?.setScreen(parentScreen)
+                    this.minecraft.setScreen(parentScreen)
                 }.bounds(this.width / 2 - 100, this.height - 28, 200, 20).build())
             }
 
@@ -159,39 +158,13 @@ object LinuxsshConfigScreen {
                 this.init()
             }
 
-            override fun renderBackground(graphics: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
-                // Ensure a proper background is rendered (e.g., dirt/gradient) to avoid visual artifacts
-                // Delegate to the default background rendering provided by Screen
-                super.renderBackground(graphics, mouseX, mouseY, delta)
-            }
-
-            override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
-                // Do not call renderBackground here; Screen.render will handle it once per frame
-                super.render(graphics, mouseX, mouseY, delta)
-                // Title
-                graphics.drawCenteredString(font, this.title, this.width / 2, 15, 0xFFFFFF)
-                // Optional message line
-                showMessage?.let {
-                    graphics.drawCenteredString(font, Component.literal(it), this.width / 2, 28, 0xA0FFA0)
-                }
-
-                // If showing public key, draw a preview text (first 80 chars)
-                val client = Minecraft.getInstance()
-                val playerUuid = client.player?.uuid?.toString() ?: "unknown"
-                val publicKeyFile = File("config/linuxssh/keys/$playerUuid/id_rsa.pub")
-                if (publicKeyFile.exists() && LinuxsshConfig.getInstance().showPublicKeyPassword) {
-                    val preview = try { publicKeyFile.readText().take(80) } catch (_: Exception) { "" }
-                    graphics.drawCenteredString(font,
-                        Component.literal(preview), this.width / 2, 120, 0xCCCCCC)
-                }
-            }
 
             override fun removed() {
                 LinuxsshConfig.save()
             }
 
             override fun onClose() {
-                this.minecraft?.setScreen(parentScreen)
+                this.minecraft.setScreen(parentScreen)
             }
 
             private fun showSaveToast() {

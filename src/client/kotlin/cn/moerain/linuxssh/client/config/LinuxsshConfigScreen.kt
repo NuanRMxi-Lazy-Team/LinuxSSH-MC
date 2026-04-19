@@ -21,7 +21,7 @@ import java.io.FileOutputStream
 object LinuxsshConfigScreen {
     fun create(parent: Screen?): Screen {
         return object : Screen(Component.translatable("linuxssh.config.title")) {
-            private val config = LinuxsshConfig.getInstance()
+            private val config = LinuxsshConfig
             private var parentScreen: Screen? = parent
             private var showMessage: String? = null
 
@@ -41,7 +41,6 @@ object LinuxsshConfigScreen {
                             Component.translatable("linuxssh.config.option.prefer_key_authentication")
                         ) { _, value: Boolean ->
                             config.preferKeyAuthentication = value
-                            LinuxsshConfig.save()
                         }
                 )
                 y += 24
@@ -53,7 +52,6 @@ object LinuxsshConfigScreen {
                             Component.translatable("linuxssh.config.option.enable_key_generation")
                         ) { _, value: Boolean ->
                             config.enableKeyGeneration = value
-                            LinuxsshConfig.save()
                             this.refreshWidgets()
                         }
                 )
@@ -66,7 +64,6 @@ object LinuxsshConfigScreen {
                             Component.translatable("linuxssh.config.option.show_public_key_password")
                         ) { _, value: Boolean ->
                             config.showPublicKeyPassword = value
-                            LinuxsshConfig.save()
                             this.refreshWidgets()
                         }
                 )
@@ -79,7 +76,6 @@ object LinuxsshConfigScreen {
                             Component.translatable("linuxssh.config.option.delete_host_fingerprint")
                         ) { _, value: Boolean ->
                             config.deleteHostFingerprint = value
-                            LinuxsshConfig.save()
                         }
                 )
                 y += 28
@@ -97,8 +93,12 @@ object LinuxsshConfigScreen {
                     ) {
                         try {
                             val keyPair = KeyPair.genKeyPair(JSch(), KeyPair.RSA, 2048)
-                            keyPair.writePrivateKey(FileOutputStream(privateKeyFile))
-                            keyPair.writePublicKey(FileOutputStream(publicKeyFile), "")
+                            FileOutputStream(privateKeyFile).use { fos ->
+                                keyPair.writePrivateKey(fos)
+                            }
+                            FileOutputStream(publicKeyFile).use { fos ->
+                                keyPair.writePublicKey(fos, "")
+                            }
                             keyPair.dispose()
                             showMessage = "Keys generated"
                             this.refreshWidgets()

@@ -74,7 +74,9 @@ dependencies {
     implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
     implementation("com.jcraft:jsch:0.1.55")
     include("com.jcraft:jsch:0.1.55")
-    implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}") {
+        exclude(group = "net.fabricmc.fabric-api", module = "fabric-renderer-api-v1")
+    }
     
     // Any other use of modImplementation, modCompileOnly should be switched to implementation or compileOnly
     

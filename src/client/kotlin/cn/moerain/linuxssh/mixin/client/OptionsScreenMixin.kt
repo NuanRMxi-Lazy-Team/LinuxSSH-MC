@@ -1,6 +1,7 @@
 package cn.moerain.linuxssh.mixin.client
 
 import cn.moerain.linuxssh.client.config.LinuxsshConfigScreen
+import cn.moerain.linuxssh.client.MinecraftBridge
 import net.minecraft.client.gui.screens.options.OptionsScreen
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.components.Button
@@ -16,7 +17,7 @@ abstract class OptionsScreenMixin(title: Component) : Screen(title) {
     private fun onInit(ci: CallbackInfo) {
         this.addRenderableWidget(
             Button.builder(Component.literal("SSH")) {
-                this.minecraft.setScreen(LinuxsshConfigScreen.create(this))
+                MinecraftBridge.setScreen(this.minecraft, LinuxsshConfigScreen.create(this))
             }.bounds(this.width / 2 + 104, this.height / 6 + 144 - 6, 45, 20).build()
         )
     }

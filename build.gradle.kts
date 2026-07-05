@@ -149,6 +149,6 @@ githubRelease {
     prerelease.set(false)
 
     /* ---------- 发布说明（可选） ---------- */
-    body.set("详见提交记录或 CHANGELOG.md")
+    body.set("详见提交记录或 WHATSNEW.md")
 }
 // 移除 ShadowJar 配置，因为 Fabric Loom 已经处理了依赖打包

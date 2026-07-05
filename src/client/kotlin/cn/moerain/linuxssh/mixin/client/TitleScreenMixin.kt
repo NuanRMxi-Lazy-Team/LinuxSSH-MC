@@ -1,5 +1,6 @@
 package cn.moerain.linuxssh.mixin.client
 
+import cn.moerain.linuxssh.client.MinecraftBridge
 import cn.moerain.linuxssh.client.config.LinuxsshConfigScreen
 import net.minecraft.client.gui.screens.TitleScreen
 import net.minecraft.client.gui.screens.Screen
@@ -15,9 +16,9 @@ abstract class TitleScreenMixin(title: Component) : Screen(title) {
     @Inject(method = ["init"], at = [At("HEAD")])
     private fun onInit(ci: CallbackInfo) {
         this.addRenderableWidget(
-            Button.builder(Component.translatable("linuxssh.config.title")) {
-                this.minecraft.setScreen(LinuxsshConfigScreen.create(this))
-            }.bounds(this.width / 2 + 104, this.height / 4 + 48 + 72 + 12, 100, 20).build()
+            Button.builder(Component.literal("SSH")) {
+                MinecraftBridge.setScreen(this.minecraft, LinuxsshConfigScreen.create(this))
+            }.bounds(this.width / 2 + 104, this.height / 6 + 144 - 6, 45, 20).build()
         )
     }
 }

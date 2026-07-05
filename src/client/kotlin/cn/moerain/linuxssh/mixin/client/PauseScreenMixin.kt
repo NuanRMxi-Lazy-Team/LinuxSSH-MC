@@ -1,5 +1,6 @@
 package cn.moerain.linuxssh.mixin.client
 
+import cn.moerain.linuxssh.client.MinecraftBridge
 import cn.moerain.linuxssh.client.config.LinuxsshConfigScreen
 import net.minecraft.client.gui.screens.PauseScreen
 import net.minecraft.client.gui.screens.Screen
@@ -17,7 +18,7 @@ abstract class PauseScreenMixin(title: Component) : Screen(title) {
         // Placement in PauseScreen: Bottom-right, similar to OptionsScreen
         this.addRenderableWidget(
             Button.builder(Component.literal("SSH")) {
-                this.minecraft.setScreen(LinuxsshConfigScreen.create(this))
+                MinecraftBridge.setScreen(this.minecraft, LinuxsshConfigScreen.create(this))
             }.bounds(this.width / 2 + 104, this.height / 4 + 144 - 6, 45, 20).build()
         )
     }

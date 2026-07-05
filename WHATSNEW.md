@@ -27,4 +27,12 @@
 - 清理终端代码中的冗余注释和未使用的导入（`java.lang.reflect.Modifier`）
 - 优化构建配置：新增 `foojay-resolver-convention` Gradle 插件以自动管理 JDK 工具链
 
+## 版本 1.8（Release，2026-07-05）
 
+### 版本升级
+- Minecraft 版本升级至 26.2 (正式版)
+- Fabric Loader 升级至 0.19.3
+- Fabric API 升级至 0.154.0+26.2
+
+### 新功能
+- 本次版本主要升级 Minecraft 版本至正式版，修复了一些 bug 并优化了一些性能。

@@ -1,6 +1,7 @@
 package cn.moerain.linuxssh.client.config
 
 import cn.moerain.linuxssh.config.LinuxsshConfig
+import cn.moerain.linuxssh.client.MinecraftBridge
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.components.Button
@@ -148,7 +149,7 @@ object LinuxsshConfigScreen {
                 addRenderableWidget(Button.builder(Component.translatable("gui.done")) {
                     LinuxsshConfig.save()
                     showSaveToast()
-                    this.minecraft.setScreen(parentScreen)
+                    MinecraftBridge.setScreen(this.minecraft, parentScreen)
                 }.bounds(this.width / 2 - 100, this.height - 28, 200, 20).build())
             }
 
@@ -164,17 +165,16 @@ object LinuxsshConfigScreen {
             }
 
             override fun onClose() {
-                this.minecraft.setScreen(parentScreen)
+                MinecraftBridge.setScreen(this.minecraft, parentScreen)
             }
 
             private fun showSaveToast() {
                 val client = Minecraft.getInstance()
-                client.toastManager.addToast(
-                    SystemToast(
-                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                        Component.translatable("linuxssh.config.saved.title"),
-                        Component.translatable("linuxssh.config.saved.message")
-                    )
+                MinecraftBridge.addSystemToast(
+                    client,
+                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                    Component.translatable("linuxssh.config.saved.title"),
+                    Component.translatable("linuxssh.config.saved.message")
                 )
             }
         }

@@ -12,7 +12,6 @@ import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
 import java.io.InputStream
 import java.io.OutputStream
-import java.lang.reflect.Modifier
 import java.util.concurrent.Executors
 
 /**
@@ -20,10 +19,9 @@ import java.util.concurrent.Executors
  */
 class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.translatable("linuxssh.terminal.title")) {
     private val columns = 80
-    private val rows = 24 // VT100 standard is 24 rows
+    private val rows = 24
     private val terminalLines = Array(rows) { StringBuilder(" ".repeat(columns)) }
-    private val terminalColors = Array(rows) { IntArray(columns) { 0xAAAAAA } } // Default Light Grey
-    
+    private val terminalColors = Array(rows) { IntArray(columns) { 0xAAAAAA } }
     private val terminalBackgrounds = Array(rows) { IntArray(columns) { 0x000000 } }
     
     private var cursorX = 0
@@ -31,11 +29,15 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
     private var currentColor = 0xAAAAAA
     private var currentBackground = 0x000000
     private var isBold = false
+    
+    // 添加锁以确保线程安全
+    private val terminalLock = Any()
 
     private var channel: ChannelShell? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
     private val readExecutor = Executors.newSingleThreadExecutor()
+    private val writeExecutor = Executors.newSingleThreadExecutor()
 
     override fun init() {
         super.init()
@@ -49,7 +51,6 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
 
                 startReading()
                 
-                // 延迟发送，确保 Channel 已经准备好接收
                 readExecutor.execute {
                     try {
                         Thread.sleep(500)
@@ -60,7 +61,7 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                this.minecraft.setScreen(null)
+                this.onClose()
             }
         }
     }
@@ -75,7 +76,9 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
                         break
                     }
                     if (read > 0) {
-                        processInput(String(buffer, 0, read))
+                        synchronized(terminalLock) {
+                            processInput(String(buffer, 0, read))
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -88,11 +91,9 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
         var i = 0
         while (i < data.length) {
             val char = data[i]
-            if (char == '\u001B') { // Escape sequence
+            if (char == '\u001B') {
                 if (i + 1 < data.length && data[i + 1] == '[') {
-                    // Try to handle SGR (m)
                     val mIdx = data.indexOf('m', i + 2)
-                    // Try to handle Cursor commands (A, B, C, D, H, f, J, K, etc.)
                     val cursorEndIdx = findCursorEnd(data, i + 2)
                     
                     if (mIdx != -1 && (cursorEndIdx == -1 || mIdx < cursorEndIdx)) {
@@ -121,11 +122,8 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
                 }
                 '\b' -> {
                     cursorX = (cursorX - 1).coerceAtLeast(0)
-                    // ANSI backspace doesn't usually clear the character, but we should handle it consistently
-                    // with how we render. Many terminals just move the cursor.
-                    // If we want to support "destructive backspace", we'd clear it.
                 }
-                '\u0007' -> { /* Bell - ignore */ }
+                '\u0007' -> { /* Bell */ }
                 '\t' -> {
                     val spaces = 8 - (cursorX % 8)
                     repeat(spaces) {
@@ -138,7 +136,7 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
                     }
                 }
                 else -> {
-                    if (char.code in 32..126 || char.code >= 160) { // Printable characters
+                    if (char.code in 32..126 || char.code >= 160) {
                         if (cursorX < columns && cursorY < rows) {
                             terminalLines[cursorY].setCharAt(cursorX, char)
                             terminalColors[cursorY][cursorX] = if (isBold) brighten(currentColor) else currentColor
@@ -193,7 +191,6 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
                 "95" -> currentColor = 0xFF55FF
                 "96" -> currentColor = 0x55FFFF
                 "97" -> currentColor = 0xFFFFFF
-                // Background colors
                 "40" -> currentBackground = 0x000000
                 "41" -> currentBackground = 0xAA0000
                 "42" -> currentBackground = 0x00AA00
@@ -222,9 +219,8 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
     }
 
     private fun handleCursor(params: String, command: Char) {
-        // Very basic implementation of cursor commands
         when (command) {
-            'H', 'f' -> { // Cursor Position
+            'H', 'f' -> {
                 val parts = params.split(';')
                 cursorY = (parts.getOrNull(0)?.toIntOrNull()?.minus(1) ?: 0).coerceIn(0, rows - 1)
                 cursorX = (parts.getOrNull(1)?.toIntOrNull()?.minus(1) ?: 0).coerceIn(0, columns - 1)
@@ -233,44 +229,42 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
             'B' -> cursorY = (cursorY + (params.toIntOrNull() ?: 1)).coerceAtMost(rows - 1)
             'C' -> cursorX = (cursorX + (params.toIntOrNull() ?: 1)).coerceAtMost(columns - 1)
             'D' -> cursorX = (cursorX - (params.toIntOrNull() ?: 1)).coerceAtLeast(0)
-            'K' -> { // Erase in Line
-                 val mode = params.toIntOrNull() ?: 0
-                 when (mode) {
-                     0 -> { // Erase from cursor to end of line
-                         for (x in cursorX until columns) {
-                             terminalLines[cursorY].setCharAt(x, ' ')
-                             terminalColors[cursorY][x] = 0xAAAAAA
-                             terminalBackgrounds[cursorY][x] = 0x000000
-                         }
-                     }
-                     1 -> { // Erase from beginning of line to cursor
-                         for (x in 0..cursorX.coerceAtMost(columns - 1)) {
-                             terminalLines[cursorY].setCharAt(x, ' ')
-                             terminalColors[cursorY][x] = 0xAAAAAA
-                             terminalBackgrounds[cursorY][x] = 0x000000
-                         }
-                     }
-                     2 -> { // Erase entire line
-                         terminalLines[cursorY].setLength(0)
-                         terminalLines[cursorY].append(" ".repeat(columns))
-                         for (x in 0 until columns) {
-                             terminalColors[cursorY][x] = 0xAAAAAA
-                             terminalBackgrounds[cursorY][x] = 0x000000
-                         }
-                     }
-                 }
-            }
-            'J' -> { // Erase in Display
+            'K' -> {
                 val mode = params.toIntOrNull() ?: 0
                 when (mode) {
-                    0 -> { // Erase from cursor to end of display
-                        // Current line
+                    0 -> {
                         for (x in cursorX until columns) {
                             terminalLines[cursorY].setCharAt(x, ' ')
                             terminalColors[cursorY][x] = 0xAAAAAA
                             terminalBackgrounds[cursorY][x] = 0x000000
                         }
-                        // Following lines
+                    }
+                    1 -> {
+                        for (x in 0..cursorX.coerceAtMost(columns - 1)) {
+                            terminalLines[cursorY].setCharAt(x, ' ')
+                            terminalColors[cursorY][x] = 0xAAAAAA
+                            terminalBackgrounds[cursorY][x] = 0x000000
+                        }
+                    }
+                    2 -> {
+                        terminalLines[cursorY].setLength(0)
+                        terminalLines[cursorY].append(" ".repeat(columns))
+                        for (x in 0 until columns) {
+                            terminalColors[cursorY][x] = 0xAAAAAA
+                            terminalBackgrounds[cursorY][x] = 0x000000
+                        }
+                    }
+                }
+            }
+            'J' -> {
+                val mode = params.toIntOrNull() ?: 0
+                when (mode) {
+                    0 -> {
+                        for (x in cursorX until columns) {
+                            terminalLines[cursorY].setCharAt(x, ' ')
+                            terminalColors[cursorY][x] = 0xAAAAAA
+                            terminalBackgrounds[cursorY][x] = 0x000000
+                        }
                         for (y in cursorY + 1 until rows) {
                             terminalLines[y].setLength(0)
                             terminalLines[y].append(" ".repeat(columns))
@@ -280,8 +274,7 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
                             }
                         }
                     }
-                    1 -> { // Erase from beginning of display to cursor
-                        // Previous lines
+                    1 -> {
                         for (y in 0 until cursorY) {
                             terminalLines[y].setLength(0)
                             terminalLines[y].append(" ".repeat(columns))
@@ -290,14 +283,13 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
                                 terminalBackgrounds[y][x] = 0x000000
                             }
                         }
-                        // Current line
                         for (x in 0..cursorX.coerceAtMost(columns - 1)) {
                             terminalLines[cursorY].setCharAt(x, ' ')
                             terminalColors[cursorY][x] = 0xAAAAAA
                             terminalBackgrounds[cursorY][x] = 0x000000
                         }
                     }
-                    2, 3 -> { // Erase entire display
+                    2, 3 -> {
                         for (y in 0 until rows) {
                             terminalLines[y].setLength(0)
                             terminalLines[y].append(" ".repeat(columns))
@@ -329,18 +321,19 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
         }
     }
 
+    // 使用正确的渲染方法 render 而不是 extractRenderState
     override fun extractRenderState(guiGraphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTick: Float) {
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick)
         handleTerminalRender(guiGraphics, mouseX, mouseY, partialTick)
     }
 
-    override fun shouldCloseOnEsc(): Boolean {
-        return true
-    }
+    override fun shouldCloseOnEsc(): Boolean = true
 
     override fun onClose() {
         try {
             channel?.disconnect()
             readExecutor.shutdownNow()
+            writeExecutor.shutdownNow()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -352,9 +345,6 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
         val keyCode = resolveReflectively(event, "keyCode", "getKeyCode", "a") as? Int ?: -1
         val modifiers = resolveReflectively(event, "modifiers", "getModifiers", "c") as? Int ?: 0
 
-        println("[LinuxSSH-DEBUG] keyPressed event: ${event::class.java.simpleName}, keyCode: $keyCode, modifiers: $modifiers")
-
-        // Handle Ctrl+V (Paste)
         if (modifiers and GLFW.GLFW_MOD_CONTROL != 0 && keyCode == GLFW.GLFW_KEY_V) {
             val content = this.minecraft.keyboardHandler.clipboard
             if (content.isNotEmpty()) {
@@ -363,7 +353,6 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
             return true
         }
 
-        // Handle Ctrl+C, Ctrl+D etc.
         if (modifiers and GLFW.GLFW_MOD_CONTROL != 0 && keyCode != -1) {
             when (keyCode) {
                 GLFW.GLFW_KEY_C -> {
@@ -382,8 +371,6 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
         }
 
         if (keyCode != -1 && handleTerminalKeyPressed(keyCode)) return true
-
-        // Prevent F3 debug keys from triggering while typing in terminal
         if (keyCode == GLFW.GLFW_KEY_F3) return true
 
         return super.keyPressed(event)
@@ -401,9 +388,6 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
     }
 
     override fun preeditUpdated(event: PreeditEvent?): Boolean {
-        // IME Support: PreeditEvent means the user is composing text (e.g., Chinese input)
-        // For simple terminal, we might just want to show something or let it pass
-        // But the requirement is to implement it to avoid UI issues
         return super.preeditUpdated(event)
     }
 
@@ -423,7 +407,6 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
                 }
             }
         } else if (simpleName == "CharacterEvent") {
-            // 1.21.4 uses 'codepoint' (Int) instead of 'character' (Char)
             val v = resolveSingle(obj, "codepoint", "character", "getCharacter", "a")
             if (v is Int) return v.toChar()
             if (v != null) return v
@@ -470,102 +453,88 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
         val y1 = (this.height - windowHeight) / 2
         val y2 = y1 + windowHeight
 
-        try {
-            val graphicsClass = guiGraphics.javaClass
+        // 绘制背景遮罩
+        guiGraphics.fill(0, 0, this.width, this.height, 0x80000000.toInt())
+        
+        // 绘制终端窗口背景
+        guiGraphics.fill(x1, y1, x2, y2, 0xFF121212.toInt())
+        
+        // 绘制边框
+        guiGraphics.fill(x1 - 1, y1 - 1, x2 + 1, y1, 0xFF707070.toInt())
+        guiGraphics.fill(x1 - 1, y2, x2 + 1, y2 + 1, 0xFF707070.toInt())
+        guiGraphics.fill(x1 - 1, y1, x1, y2, 0xFF707070.toInt())
+        guiGraphics.fill(x2, y1, x2 + 1, y2, 0xFF707070.toInt())
+        
+        // 绘制标题栏
+        guiGraphics.fill(x1, y1, x2, y1 + titleBarHeight, 0xFF353535.toInt())
 
-            try {
-                graphicsClass.getMethod("nextStratum").invoke(guiGraphics)
-            } catch (e: Exception) {}
+        val startX = x1 + padding
+        val startY = y1 + titleBarHeight + 5
 
-            val fillMethod = graphicsClass.getMethod("fill", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
-            fillMethod.invoke(guiGraphics, 0, 0, this.width, this.height, 0x80000000.toInt())
+        synchronized(terminalLock) {
+            // 绘制标题
+            guiGraphics.text(this.minecraft.font, "SSH Terminal: ${session.host}", x1 + 5, y1 + 3, 0xFFFFFFFF.toInt())
+            guiGraphics.text(this.minecraft.font, "X", x2 - 12, y1 + 3, 0xFFFF5555.toInt())
 
-            try {
-                graphicsClass.getMethod("nextStratum").invoke(guiGraphics)
-            } catch (e: Exception) {}
+            // 绘制终端内容
+            for (y in 0 until rows) {
+                val line = terminalLines[y].toString()
+                val backgrounds = terminalBackgrounds[y]
+                val colors = terminalColors[y]
 
-            fillMethod.invoke(guiGraphics, x1, y1, x2, y2, 0xFF121212.toInt())
-
-            fillMethod.invoke(guiGraphics, x1 - 1, y1 - 1, x2 + 1, y1, 0xFF707070.toInt()) // Top
-            fillMethod.invoke(guiGraphics, x1 - 1, y2, x2 + 1, y2 + 1, 0xFF707070.toInt()) // Bottom
-            fillMethod.invoke(guiGraphics, x1 - 1, y1, x1, y2, 0xFF707070.toInt()) // Left
-            fillMethod.invoke(guiGraphics, x2, y1, x2 + 1, y2, 0xFF707070.toInt()) // Right
-
-            fillMethod.invoke(guiGraphics, x1, y1, x2, y1 + titleBarHeight, 0xFF353535.toInt())
-
-            val font = this.minecraft.font
-            val fontClass = font.javaClass
-
-            var textMethod: java.lang.reflect.Method? = null
-            try {
-                textMethod = graphicsClass.getMethod("text", fontClass, String::class.java, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
-            } catch (e: Exception) {
-                try {
-                    textMethod = graphicsClass.getMethod("drawString", fontClass, String::class.java, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
-                } catch (e2: Exception) {}
-            }
-
-            val startX = x1 + padding
-            val startY = y1 + titleBarHeight + 5
-
-            if (textMethod != null) {
-                val title = "SSH Terminal: ${session.host}"
-                textMethod.invoke(guiGraphics, font, title, x1 + 5, y1 + 3, 0xFFFFFFFF.toInt(), false)
-                textMethod.invoke(guiGraphics, font, "X", x2 - 12, y1 + 3, 0xFFFF5555.toInt(), false)
-
-                for (y in 0 until rows) {
-                    val line = terminalLines[y].toString()
-                    val backgrounds = terminalBackgrounds[y]
-                    val colors = terminalColors[y]
-
-                    // Optimization: Batch backgrounds
-                    var startX_bg = 0
-                    while (startX_bg < columns) {
-                        val currentBg = backgrounds[startX_bg]
-                        var endX_bg = startX_bg + 1
-                        while (endX_bg < columns && backgrounds[endX_bg] == currentBg) {
-                            endX_bg++
-                        }
-
-                        val px1 = startX + startX_bg * charWidth
-                        val py1 = startY + y * charHeight
-                        val px2 = startX + endX_bg * charWidth
-                        val py2 = py1 + charHeight
-
-                        fillMethod.invoke(guiGraphics, px1, py1, px2, py2, 0xFF000000.toInt() or currentBg)
-                        startX_bg = endX_bg
+                // 绘制背景
+                var startX_bg = 0
+                while (startX_bg < columns) {
+                    val currentBg = backgrounds[startX_bg]
+                    var endX_bg = startX_bg + 1
+                    while (endX_bg < columns && backgrounds[endX_bg] == currentBg) {
+                        endX_bg++
                     }
 
-                    // Optimization: Batch text
-                    var startX_text = 0
-                    while (startX_text < columns) {
-                        val currentChar = line[startX_text]
-                        if (currentChar == ' ') {
-                            startX_text++
-                            continue
-                        }
+                    val px1 = startX + startX_bg * charWidth
+                    val py1 = startY + y * charHeight
+                    val px2 = startX + endX_bg * charWidth
+                    val py2 = py1 + charHeight
 
-                        val currentColor = colors[startX_text]
-                        var endX_text = startX_text + 1
-                        while (endX_text < columns && line[endX_text] != ' ' && colors[endX_text] == currentColor) {
-                            endX_text++
-                        }
+                    guiGraphics.fill(px1, py1, px2, py2, 0xFF000000.toInt() or currentBg)
+                    startX_bg = endX_bg
+                }
 
-                        val textToDraw = line.substring(startX_text, endX_text)
-                        val px = startX + startX_text * charWidth
-                        val py = startY + y * charHeight
-
-                        textMethod.invoke(guiGraphics, font, textToDraw, px, py, 0xFF000000.toInt() or currentColor, false)
-                        startX_text = endX_text
+                // 绘制文本
+                var startX_text = 0
+                while (startX_text < columns) {
+                    val currentChar = line[startX_text]
+                    if (currentChar == ' ') {
+                        startX_text++
+                        continue
                     }
+
+                    val currentColor = colors[startX_text]
+                    var endX_text = startX_text + 1
+                    while (endX_text < columns && line[endX_text] != ' ' && colors[endX_text] == currentColor) {
+                        endX_text++
+                    }
+
+                    val textToDraw = line.substring(startX_text, endX_text)
+                    val px = startX + startX_text * charWidth
+                    val py = startY + y * charHeight
+
+                    guiGraphics.text(this.minecraft.font, textToDraw, px, py, 0xFF000000.toInt() or currentColor)
+                    startX_text = endX_text
                 }
             }
 
+            // 绘制光标
             if ((System.currentTimeMillis() / 500) % 2 == 0L) {
-                fillMethod.invoke(guiGraphics, startX + cursorX * charWidth, startY + cursorY * charHeight, startX + (cursorX + 1) * charWidth, startY + (cursorY + 1) * charHeight, -2004318209)
+                val cursorColor = -2004318209 // 半透明白色
+                guiGraphics.fill(
+                    startX + cursorX * charWidth,
+                    startY + cursorY * charHeight,
+                    startX + (cursorX + 1) * charWidth,
+                    startY + (cursorY + 1) * charHeight,
+                    cursorColor
+                )
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
@@ -612,7 +581,6 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
             return true
         }
 
-        // Also check for click on "X"
         if (mouseX >= x2 - 15 && mouseX <= x2 && mouseY >= y1 && mouseY <= y1 + 15) {
             this.onClose()
             return true
@@ -644,7 +612,7 @@ class LinuxsshTerminalScreen(private val session: Session) : Screen(Component.tr
     }
 
     private fun sendToSsh(data: String) {
-        readExecutor.execute {
+        writeExecutor.execute {
             try {
                 outputStream?.write(data.toByteArray())
                 outputStream?.flush()

@@ -3,6 +3,7 @@ package cn.moerain.linuxssh.client
 import cn.moerain.linuxssh.config.LinuxsshConfig
 import cn.moerain.linuxssh.Linuxssh
 import cn.moerain.linuxssh.client.gui.LinuxsshTerminalScreen
+import cn.moerain.linuxssh.client.MinecraftBridge
 import com.mojang.brigadier.arguments.StringArgumentType
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
@@ -45,7 +46,7 @@ class LinuxsshClient : ClientModInitializer {
                     val session = Linuxssh.activeSessions[player.uuid]
                     if (session != null && session.isConnected) {
                         client.execute {
-                            client.setScreen(LinuxsshTerminalScreen(session))
+                            MinecraftBridge.setScreen(client, LinuxsshTerminalScreen(session))
                         }
                     } else {
                         context.source.sendFeedback(Component.translatable("linuxssh.command.not_connected"))
@@ -101,12 +102,11 @@ class LinuxsshClient : ClientModInitializer {
         // Show reminder toast when joining a world
         ClientPlayConnectionEvents.JOIN.register { handler, sender, client ->
             client.execute {
-                client.toastManager.addToast(
-                    SystemToast(
-                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                        Component.translatable("linuxssh.toast.warning.title"),
-                        Component.translatable("linuxssh.toast.warning.message")
-                    )
+                MinecraftBridge.addSystemToast(
+                    client,
+                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                    Component.translatable("linuxssh.toast.warning.title"),
+                    Component.translatable("linuxssh.toast.warning.message")
                 )
             }
         }

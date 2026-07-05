@@ -16,6 +16,9 @@ pluginManagement {
         mavenCentral()
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 
 // Apply repository configuration for all projects (dependencies resolution stage)
 dependencyResolutionManagement {

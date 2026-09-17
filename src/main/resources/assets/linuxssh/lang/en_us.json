@@ -5,6 +5,7 @@
   "linuxssh.command.not_connected": "§cYou are not connected to any SSH server.",
   "linuxssh.command.invalid_format": "§cInvalid connection format. Use: username@host",
   "linuxssh.command.password_prompt": "§eEnter your password using: /ssh password <your_password>",
+  "linuxssh.command.password_received": "§aPassword received, attempting authentication...",
   "linuxssh.command.fingerprint_prompt": "§eUse /ssh confirm yes to accept or /ssh confirm no to reject",
   "linuxssh.command.fingerprint_accepted": "§aHost key accepted. Proceeding with connection...",
   "linuxssh.command.fingerprint_rejected": "§cHost key rejected. Connection aborted.",
@@ -62,5 +63,6 @@
   "linuxssh.config.saved.title": "LinuxSSH",
   "linuxssh.config.saved.message": "Settings saved successfully",
   "linuxssh.toast.warning.title": "Security Warning",
-  "linuxssh.toast.warning.message": "Do not display SSH credentials in live streams or demo environments. The author is not responsible for any consequences."
+  "linuxssh.toast.warning.message": "Do not display SSH credentials in live streams or demo environments. The author is not responsible for any consequences.",
+  "linuxssh.terminal.title": "SSH Terminal (80x25)"
 }

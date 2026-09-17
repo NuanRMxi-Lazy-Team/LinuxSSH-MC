@@ -7,6 +7,7 @@
   "linuxssh.command.not_connected": "§c您未连接到任何 SSH 服务器。",
   "linuxssh.command.invalid_format": "§c连接格式无效。请使用：username@host",
   "linuxssh.command.password_prompt": "§e请使用以下命令输入密码：/ssh password <your_password>",
+  "linuxssh.command.password_received": "§a密码已接收，正在尝试认证...",
   "linuxssh.command.fingerprint_prompt": "§e使用 /ssh confirm yes 接受或 /ssh confirm no 拒绝",
   "linuxssh.command.fingerprint_accepted": "§a主机密钥已接受。正在继续连接...",
   "linuxssh.command.fingerprint_rejected": "§c主机密钥已拒绝。连接已终止。",
@@ -64,5 +65,6 @@
   "linuxssh.config.saved.title": "LinuxSSH",
   "linuxssh.config.saved.message": "设置已成功保存",
   "linuxssh.toast.warning.title": "安全警告",
-  "linuxssh.toast.warning.message": "请勿在直播或演示环境中展示 SSH 凭据，否则作者不承担任何后果。"
+  "linuxssh.toast.warning.message": "请勿在直播或演示环境中展示 SSH 凭据，否则作者不承担任何后果。",
+  "linuxssh.terminal.title": "SSH 终端 (80x25)"
 }

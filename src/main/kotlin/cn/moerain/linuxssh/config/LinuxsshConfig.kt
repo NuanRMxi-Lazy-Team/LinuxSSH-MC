@@ -2,14 +2,11 @@ package cn.moerain.linuxssh.config
 
 import com.google.gson.GsonBuilder
 import net.fabricmc.loader.api.FabricLoader
-import java.io.File
-import java.io.FileReader
-import java.io.FileWriter
 
 /**
  * Configuration class for the LinuxSSH mod
  */
-class LinuxsshConfig {
+object LinuxsshConfig {
     // Configuration options
     var deleteHostFingerprint: Boolean = false
     
@@ -18,54 +15,63 @@ class LinuxsshConfig {
     var enableKeyGeneration: Boolean = true
     var showPublicKeyPassword: Boolean = false
 
-    companion object {
-        private val configFile = FabricLoader.getInstance().configDir.resolve("linuxssh/config.json").toFile()
-        private val gson = GsonBuilder().setPrettyPrinting().create()
-        private var instance: LinuxsshConfig? = null
+    private val configFile = FabricLoader.getInstance().configDir.resolve("linuxssh.cfg").toFile()
+    private val gson = GsonBuilder().setPrettyPrinting().create()
 
-        /**
-         * Get the singleton instance of the config
-         */
-        fun getInstance(): LinuxsshConfig {
-            if (instance == null) {
-                instance = load()
+    /**
+     * Data class to represent the configuration for serialization
+     */
+    private data class ConfigData(
+        val deleteHostFingerprint: Boolean,
+        val preferKeyAuthentication: Boolean,
+        val enableKeyGeneration: Boolean,
+        val showPublicKeyPassword: Boolean
+    )
+
+    /**
+     * Load the configuration from file
+     */
+    fun load() {
+        if (!configFile.exists()) return
+        
+        try {
+            configFile.bufferedReader().use { reader ->
+                val loaded = gson.fromJson(reader, ConfigData::class.java)
+                if (loaded != null) {
+                    deleteHostFingerprint = loaded.deleteHostFingerprint
+                    preferKeyAuthentication = loaded.preferKeyAuthentication
+                    enableKeyGeneration = loaded.enableKeyGeneration
+                    showPublicKeyPassword = loaded.showPublicKeyPassword
+                }
             }
-            return instance!!
+        } catch (e: Exception) {
+            println("Failed to load LinuxSSH config: ${e.message}")
+            e.printStackTrace()
         }
+    }
 
-        /**
-         * Load the configuration from file
-         */
-        private fun load(): LinuxsshConfig {
-            if (configFile.exists()) {
-                try {
-                    FileReader(configFile).use { reader ->
-                        return gson.fromJson(reader, LinuxsshConfig::class.java) ?: LinuxsshConfig()
-                    }
-                } catch (e: Exception) {
-                    println("Failed to load LinuxSSH config: ${e.message}")
-                    e.printStackTrace()
-                }
+    /**
+     * Save the configuration to file
+     */
+    fun save() {
+        try {
+            if (!configFile.parentFile.exists()) {
+                configFile.parentFile.mkdirs()
             }
-            return LinuxsshConfig()
-        }
-
-        /**
-         * Save the configuration to file
-         */
-        fun save() {
-            try {
-                if (!configFile.parentFile.exists()) {
-                    configFile.parentFile.mkdirs()
-                }
-                
-                FileWriter(configFile).use { writer ->
-                    gson.toJson(getInstance(), writer)
-                }
-            } catch (e: Exception) {
-                println("Failed to save LinuxSSH config: ${e.message}")
-                e.printStackTrace()
+            
+            val data = ConfigData(
+                deleteHostFingerprint,
+                preferKeyAuthentication,
+                enableKeyGeneration,
+                showPublicKeyPassword
+            )
+            
+            configFile.bufferedWriter().use { writer ->
+                gson.toJson(data, writer)
             }
+        } catch (e: Exception) {
+            println("Failed to save LinuxSSH config: ${e.message}")
+            e.printStackTrace()
         }
     }
 }

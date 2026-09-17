@@ -6,7 +6,8 @@
   "client": [
     "OptionsScreenMixin",
     "TitleScreenMixin",
-    "PauseScreenMixin"
+    "PauseScreenMixin",
+    "DebugScreenOverlayMixin"
   ],
   "injectors": {
     "defaultRequire": 1

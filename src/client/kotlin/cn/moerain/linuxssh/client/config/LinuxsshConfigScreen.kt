@@ -1,6 +1,7 @@
 package cn.moerain.linuxssh.client.config
 
 import cn.moerain.linuxssh.config.LinuxsshConfig
+import cn.moerain.linuxssh.client.MinecraftBridge
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.components.Button
@@ -19,9 +20,10 @@ import java.io.FileOutputStream
  * @author Celesita
  */
 object LinuxsshConfigScreen {
+    @JvmStatic
     fun create(parent: Screen?): Screen {
         return object : Screen(Component.translatable("linuxssh.config.title")) {
-            private val config = LinuxsshConfig.getInstance()
+            private val config = LinuxsshConfig
             private var parentScreen: Screen? = parent
             private var showMessage: String? = null
 
@@ -41,7 +43,6 @@ object LinuxsshConfigScreen {
                             Component.translatable("linuxssh.config.option.prefer_key_authentication")
                         ) { _, value: Boolean ->
                             config.preferKeyAuthentication = value
-                            LinuxsshConfig.save()
                         }
                 )
                 y += 24
@@ -53,7 +54,6 @@ object LinuxsshConfigScreen {
                             Component.translatable("linuxssh.config.option.enable_key_generation")
                         ) { _, value: Boolean ->
                             config.enableKeyGeneration = value
-                            LinuxsshConfig.save()
                             this.refreshWidgets()
                         }
                 )
@@ -66,7 +66,6 @@ object LinuxsshConfigScreen {
                             Component.translatable("linuxssh.config.option.show_public_key_password")
                         ) { _, value: Boolean ->
                             config.showPublicKeyPassword = value
-                            LinuxsshConfig.save()
                             this.refreshWidgets()
                         }
                 )
@@ -79,7 +78,6 @@ object LinuxsshConfigScreen {
                             Component.translatable("linuxssh.config.option.delete_host_fingerprint")
                         ) { _, value: Boolean ->
                             config.deleteHostFingerprint = value
-                            LinuxsshConfig.save()
                         }
                 )
                 y += 28
@@ -97,8 +95,12 @@ object LinuxsshConfigScreen {
                     ) {
                         try {
                             val keyPair = KeyPair.genKeyPair(JSch(), KeyPair.RSA, 2048)
-                            keyPair.writePrivateKey(FileOutputStream(privateKeyFile))
-                            keyPair.writePublicKey(FileOutputStream(publicKeyFile), "")
+                            FileOutputStream(privateKeyFile).use { fos ->
+                                keyPair.writePrivateKey(fos)
+                            }
+                            FileOutputStream(publicKeyFile).use { fos ->
+                                keyPair.writePublicKey(fos, "")
+                            }
                             keyPair.dispose()
                             showMessage = "Keys generated"
                             this.refreshWidgets()
@@ -148,7 +150,7 @@ object LinuxsshConfigScreen {
                 addRenderableWidget(Button.builder(Component.translatable("gui.done")) {
                     LinuxsshConfig.save()
                     showSaveToast()
-                    this.minecraft.setScreen(parentScreen)
+                    MinecraftBridge.setScreen(this.minecraft, parentScreen)
                 }.bounds(this.width / 2 - 100, this.height - 28, 200, 20).build())
             }
 
@@ -164,17 +166,16 @@ object LinuxsshConfigScreen {
             }
 
             override fun onClose() {
-                this.minecraft.setScreen(parentScreen)
+                MinecraftBridge.setScreen(this.minecraft, parentScreen)
             }
 
             private fun showSaveToast() {
                 val client = Minecraft.getInstance()
-                client.toastManager.addToast(
-                    SystemToast(
-                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                        Component.translatable("linuxssh.config.saved.title"),
-                        Component.translatable("linuxssh.config.saved.message")
-                    )
+                MinecraftBridge.addSystemToast(
+                    client,
+                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                    Component.translatable("linuxssh.config.saved.title"),
+                    Component.translatable("linuxssh.config.saved.message")
                 )
             }
         }

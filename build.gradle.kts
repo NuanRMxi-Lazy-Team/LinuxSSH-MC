@@ -9,7 +9,7 @@ val kotlin_loader_version: String by project
 
 plugins {
     kotlin("jvm") version "2.3.20"
-    id("net.fabricmc.fabric-loom") version "1.15.5"
+    id("net.fabricmc.fabric-loom") version "1.16.2"
     id("maven-publish")
     id("com.modrinth.minotaur") version "2.8.7"
     id("com.matthewprenger.cursegradle") version "1.4.0"
@@ -50,6 +50,12 @@ loom {
             sourceSet("client")
         }
     }
+
+    runs {
+        named("client") {
+            vmArg("-Xss16m")
+        }
+    }
 }
 
 fabricApi {
@@ -73,8 +79,11 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
     implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
     implementation("com.jcraft:jsch:0.1.55")
+    implementation("org.lwjgl:lwjgl-glfw:3.2.3")
     include("com.jcraft:jsch:0.1.55")
-    implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}") {
+        exclude(group = "net.fabricmc.fabric-api", module = "fabric-renderer-api-v1")
+    }
     
     // Any other use of modImplementation, modCompileOnly should be switched to implementation or compileOnly
     
@@ -147,6 +156,6 @@ githubRelease {
     prerelease.set(false)
 
     /* ---------- 发布说明（可选） ---------- */
-    body.set("详见提交记录或 CHANGELOG.md")
+    body.set("详见提交记录或 WHATSNEW.md")
 }
 // 移除 ShadowJar 配置，因为 Fabric Loom 已经处理了依赖打包

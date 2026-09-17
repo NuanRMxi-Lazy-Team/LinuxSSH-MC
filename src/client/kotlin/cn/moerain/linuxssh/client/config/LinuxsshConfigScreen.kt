@@ -20,6 +20,7 @@ import java.io.FileOutputStream
  * @author Celesita
  */
 object LinuxsshConfigScreen {
+    @JvmStatic
     fun create(parent: Screen?): Screen {
         return object : Screen(Component.translatable("linuxssh.config.title")) {
             private val config = LinuxsshConfig

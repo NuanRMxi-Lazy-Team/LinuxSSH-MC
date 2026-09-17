@@ -29,6 +29,62 @@ public class DebugEntrySshHostStatus {
     private static volatile CachedStatus cachedStatus = CachedStatus.empty();
     private static volatile long lastRefreshAttemptMs = 0L;
 
+    public static void appendStatusLines(List<String> lines) {
+        Minecraft minecraft = getMinecraft();
+        if (minecraft == null || minecraft.player == null) {
+            return;
+        }
+
+        UUID uuid = minecraft.player.getUUID();
+        Session session = Linuxssh.activeSessions.get(uuid);
+
+        if (session == null || !session.isConnected()) {
+            return;
+        }
+
+        lines.add("SSH Host Status: connected");
+
+        CachedStatus status = cachedStatus;
+        if (status.isExpired()) {
+            maybeRefreshAsync(session);
+        }
+
+        if (status.host != null && !status.host.isBlank()) {
+            lines.add("  Host: " + status.host);
+        }
+
+        if (status.username != null && !status.username.isBlank()) {
+            lines.add("  User: " + status.username);
+        }
+
+        if (status.cpu != null && !status.cpu.isBlank()) {
+            lines.add("  CPU: " + status.cpu);
+        } else {
+            lines.add("  CPU: collecting...");
+        }
+
+        if (status.memory != null && !status.memory.isBlank()) {
+            lines.add("  Mem: " + status.memory);
+        } else {
+            lines.add("  Mem: collecting...");
+        }
+
+        if (status.disk != null && !status.disk.isBlank()) {
+            lines.add("  Disk: " + status.disk);
+        } else {
+            lines.add("  Disk: collecting...");
+        }
+
+        if (status.load != null && !status.load.isBlank()) {
+            lines.add("  Load: " + status.load);
+        }
+
+        if (status.updatedAtMs > 0L) {
+            long ageSec = Math.max(0L, (System.currentTimeMillis() - status.updatedAtMs) / 1000L);
+            lines.add("  Updated: " + ageSec + "s ago");
+        }
+    }
+
     public void display(Object displayer, @Nullable Level serverOrClientLevel, @Nullable LevelChunk clientChunk, @Nullable LevelChunk serverChunk) {
         Minecraft minecraft = getMinecraft();
         if (minecraft == null || minecraft.player == null) {
@@ -98,7 +154,7 @@ public class DebugEntrySshHostStatus {
         }
     }
 
-    private void maybeRefreshAsync(Session session) {
+    private static void maybeRefreshAsync(Session session) {
         long now = System.currentTimeMillis();
         if (now - lastRefreshAttemptMs < STATUS_CACHE_TTL_MS) {
             return;
@@ -115,14 +171,14 @@ public class DebugEntrySshHostStatus {
         }).start();
     }
 
-    private CachedStatus queryStatus(Session session) {
+    private static CachedStatus queryStatus(Session session) {
         String host = safeGetSessionString(session, "getHost", "host");
         String username = safeGetSessionString(session, "getUserName", "username", "getUsername");
 
-        String cpu = null;
-        String memory = null;
-        String disk = null;
-        String load = null;
+        String cpu = "";
+        String memory = "";
+        String disk = "";
+        String load = "";
 
         String[] commands = new String[] {
             "bash -lc 'top -bn1 | grep \"Cpu(s)\" | head -n 1'",
@@ -146,7 +202,7 @@ public class DebugEntrySshHostStatus {
     }
 
     @Nullable
-    private String executeRemoteCommand(Session session, String command) {
+    private static String executeRemoteCommand(Session session, String command) {
         try {
             Object channel = session.openChannel("exec");
             if (channel == null) {
@@ -183,7 +239,7 @@ public class DebugEntrySshHostStatus {
     }
 
     @Nullable
-    private String parseCpu(@Nullable String text) {
+    private static String parseCpu(@Nullable String text) {
         if (text == null || text.isBlank()) {
             return null;
         }
@@ -191,7 +247,7 @@ public class DebugEntrySshHostStatus {
     }
 
     @Nullable
-    private String parseMemory(@Nullable String text) {
+    private static String parseMemory(@Nullable String text) {
         if (text == null || text.isBlank()) {
             return null;
         }
@@ -200,7 +256,7 @@ public class DebugEntrySshHostStatus {
     }
 
     @Nullable
-    private String parseDisk(@Nullable String text) {
+    private static String parseDisk(@Nullable String text) {
         if (text == null || text.isBlank()) {
             return null;
         }
@@ -209,7 +265,7 @@ public class DebugEntrySshHostStatus {
     }
 
     @Nullable
-    private String parseLoad(@Nullable String text) {
+    private static String parseLoad(@Nullable String text) {
         if (text == null || text.isBlank()) {
             return null;
         }
@@ -221,7 +277,7 @@ public class DebugEntrySshHostStatus {
     }
 
     @Nullable
-    private String safeGetSessionString(Session session, String... methodNames) {
+    private static String safeGetSessionString(Session session, String... methodNames) {
         for (String methodName : methodNames) {
             try {
                 Method m = session.getClass().getMethod(methodName);
@@ -236,7 +292,7 @@ public class DebugEntrySshHostStatus {
     }
 
     @Nullable
-    private Method findMethod(Class<?> type, String name, Class<?>... paramTypes) {
+    private static Method findMethod(Class<?> type, String name, Class<?>... paramTypes) {
         try {
             Method method = type.getMethod(name, paramTypes);
             if (Modifier.isPublic(method.getModifiers())) {
@@ -249,7 +305,7 @@ public class DebugEntrySshHostStatus {
     }
 
     @Nullable
-    private Minecraft getMinecraft() {
+    private static Minecraft getMinecraft() {
         try {
             return Minecraft.getInstance();
         } catch (Throwable ignored) {
@@ -257,43 +313,20 @@ public class DebugEntrySshHostStatus {
         }
     }
 
-    private static final class CachedStatus {
-        final @Nullable String host;
-        final @Nullable String username;
-        final @Nullable String cpu;
-        final @Nullable String memory;
-        final @Nullable String disk;
-        final @Nullable String load;
-        final long updatedAtMs;
-
-        private CachedStatus(
-                @Nullable String host,
-                @Nullable String username,
-                @Nullable String cpu,
-                @Nullable String memory,
-                @Nullable String disk,
-                @Nullable String load,
-                long updatedAtMs
-        ) {
-            this.host = host;
-            this.username = username;
-            this.cpu = cpu;
-            this.memory = memory;
-            this.disk = disk;
-            this.load = load;
-            this.updatedAtMs = updatedAtMs;
-        }
+    private record CachedStatus(@Nullable String host, @Nullable String username, @Nullable String cpu,
+                                @Nullable String memory, @Nullable String disk, @Nullable String load,
+                                long updatedAtMs) {
 
         static CachedStatus empty() {
-            return new CachedStatus(null, null, null, null, null, null, 0L);
-        }
+                return new CachedStatus(null, null, null, null, null, null, 0L);
+            }
 
-        static CachedStatus error(String message) {
-            return new CachedStatus(null, null, message, message, message, message, System.currentTimeMillis());
-        }
+            static CachedStatus error(String message) {
+                return new CachedStatus(null, null, message, message, message, message, System.currentTimeMillis());
+            }
 
-        boolean isExpired() {
-            return updatedAtMs <= 0L || System.currentTimeMillis() - updatedAtMs > STATUS_CACHE_TTL_MS;
+            boolean isExpired() {
+                return updatedAtMs <= 0L || System.currentTimeMillis() - updatedAtMs > STATUS_CACHE_TTL_MS;
+            }
         }
-    }
 }
